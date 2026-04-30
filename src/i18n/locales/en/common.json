@@ -1,0 +1,23 @@
+{
+  "app": {
+    "title": "Sudokong"
+  },
+  "play": {
+    "modes": {
+      "value": "Value",
+      "pencil": "Pencil"
+    },
+    "actions": {
+      "erase": "Erase",
+      "undo": "Undo",
+      "redo": "Redo",
+      "new": "New",
+      "theme": "Theme",
+      "lang": "Lang"
+    },
+    "status": {
+      "completed": "Completed!",
+      "conflicts": "Conflicts detected"
+    }
+  }
+}

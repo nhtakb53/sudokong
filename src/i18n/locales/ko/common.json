@@ -1,0 +1,23 @@
+{
+  "app": {
+    "title": "스도쿠콩"
+  },
+  "play": {
+    "modes": {
+      "value": "숫자",
+      "pencil": "메모"
+    },
+    "actions": {
+      "erase": "지우기",
+      "undo": "되돌리기",
+      "redo": "다시하기",
+      "new": "새 게임",
+      "theme": "테마",
+      "lang": "언어"
+    },
+    "status": {
+      "completed": "완성!",
+      "conflicts": "충돌이 있습니다"
+    }
+  }
+}
