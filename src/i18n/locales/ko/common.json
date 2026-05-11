@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "스도쿠콩"
+    "title": "스도콩"
   },
   "play": {
     "modes": {
@@ -13,11 +13,133 @@
       "redo": "다시하기",
       "new": "새 게임",
       "theme": "테마",
-      "lang": "언어"
+      "lang": "언어",
+      "auto_pencil": "자동 메모",
+      "hint": "힌트",
+      "apply_hint": "적용",
+      "dismiss": "닫기",
+      "validate": "검증",
+      "fill_candidates": "후보 채우기",
+      "settings": "설정",
+      "puzzle_io": "퍼즐",
+      "learn": "학습"
     },
     "status": {
       "completed": "완성!",
-      "conflicts": "충돌이 있습니다"
+      "conflicts": "충돌이 있습니다",
+      "no_hint": "현재 보드에서 적용 가능한 기법이 없습니다."
+    },
+    "confirm": {
+      "new_game_title": "새 게임을 시작할까요?",
+      "new_game_message": "현재 진행 중인 풀이가 사라집니다.",
+      "confirm": "새 게임",
+      "cancel": "취소"
+    }
+  },
+  "learn": {
+    "title": "학습",
+    "back": "← 뒤로",
+    "coming_soon": "곧 출시",
+    "lessons_ready": "{{ready}}/{{total}} 레슨",
+    "lessons_partial": "{{ready}}/{{total}} 레슨 준비됨",
+    "visual_lesson": "시각 학습",
+    "start_example": "예제 풀기",
+    "lesson": {
+      "play": "재생",
+      "pause": "일시정지",
+      "replay": "다시 재생",
+      "no_example": "이 레슨의 예제 보드가 아직 준비되지 않았어요.",
+      "no_step": "예제 보드에서 적용 가능한 기법을 찾을 수 없습니다.",
+      "mismatch": "이 예제의 첫 단계는 [{{actual}}] 기법이에요. 이 기법으로 학습을 진행합니다."
+    }
+  },
+  "io": {
+    "title": "퍼즐 가져오기 / 내보내기",
+    "import_label": "81자 퍼즐 문자열을 붙여넣으세요",
+    "import_button": "불러오기",
+    "export_label": "현재 퍼즐 (시작 상태)",
+    "copy": "복사",
+    "copied": "복사됨",
+    "close": "닫기",
+    "placeholder": "예: 53..7....6..195....98....6.8...6...3 ...",
+    "helper": "{{count}}/81자",
+    "errors": {
+      "length": "정확히 81자여야 합니다.",
+      "chars": "0~9와 . 만 사용할 수 있습니다.",
+      "conflict": "보드에 충돌이 있습니다.",
+      "unsolvable": "풀 수 없는 퍼즐입니다."
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "highlight_same_digit": "같은 숫자 강조",
+    "highlight_peers": "행/열/박스 강조",
+    "color_blind": "색맹 친화 색상",
+    "font_scale": "글자 크기",
+    "font_sm": "작게",
+    "font_md": "보통",
+    "font_lg": "크게",
+    "close": "닫기"
+  },
+  "units": {
+    "row": "행",
+    "col": "열",
+    "box": "박스"
+  },
+  "keyboard": {
+    "title": "키보드 단축키",
+    "show": "단축키 보기",
+    "hide": "단축키 닫기",
+    "navigate": "셀 이동",
+    "input": "숫자/메모 입력",
+    "erase": "지우기",
+    "toggle_mode": "숫자/메모 모드 전환",
+    "undo": "되돌리기",
+    "redo": "다시하기",
+    "hint": "힌트 요청",
+    "validate": "검증",
+    "dismiss_hint": "힌트 닫기"
+  },
+  "techniques": {
+    "naked_single": {
+      "name": "단일 후보",
+      "step": "{{row}}행 {{col}}열에 들어갈 수 있는 숫자는 {{digit}}뿐입니다."
+    },
+    "hidden_single": {
+      "name": "숨은 단일",
+      "step": "$t(units.{{unit}}) {{unitIndex}}에서 {{digit}}이 들어갈 수 있는 칸은 ({{row}}, {{col}}) 한 곳뿐입니다."
+    },
+    "locked_candidates_pointing": {
+      "name": "포인팅",
+      "step": "{{box}}번 박스에서 {{digit}}이 한 $t(units.{{line}})에만 위치하므로, 그 $t(units.{{line}}) {{lineIndex}}의 박스 외 셀에서 {{digit}}을 제외할 수 있습니다."
+    },
+    "locked_candidates_claiming": {
+      "name": "클레이밍",
+      "step": "$t(units.{{line}}) {{lineIndex}}에서 {{digit}}이 {{box}}번 박스에만 위치하므로, 박스의 다른 셀에서 {{digit}}을 제외할 수 있습니다."
+    },
+    "naked_pair": {
+      "name": "노출 페어",
+      "step": "$t(units.{{unit}}) {{unitIndex}}에서 두 셀이 후보 {{digits}}만 가지므로, 같은 영역의 다른 셀에서 그 후보를 제외할 수 있습니다."
+    },
+    "hidden_pair": {
+      "name": "숨은 페어",
+      "step": "$t(units.{{unit}}) {{unitIndex}}에서 후보 {{digits}}이(가) 같은 두 셀에만 위치하므로, 그 두 셀의 다른 후보를 제외할 수 있습니다."
+    },
+    "naked_triple": {
+      "name": "노출 트리플",
+      "step": "$t(units.{{unit}}) {{unitIndex}}에서 세 셀의 후보 합집합이 정확히 {{digits}}이므로, 같은 영역의 다른 셀에서 그 후보를 제외할 수 있습니다."
+    },
+    "hidden_triple": {
+      "name": "숨은 트리플",
+      "step": "$t(units.{{unit}}) {{unitIndex}}에서 후보 {{digits}}이(가) 같은 세 셀에만 위치하므로, 그 세 셀의 다른 후보를 제외할 수 있습니다."
+    },
+    "naked_quad": {
+      "name": "노출 쿼드",
+      "step": "$t(units.{{unit}}) {{unitIndex}}에서 네 셀의 후보 합집합이 정확히 {{digits}}이므로, 같은 영역의 다른 셀에서 그 후보를 제외할 수 있습니다."
+    },
+    "hidden_quad": {
+      "name": "숨은 쿼드",
+      "step": "$t(units.{{unit}}) {{unitIndex}}에서 후보 {{digits}}이(가) 같은 네 셀에만 위치하므로, 그 네 셀의 다른 후보를 제외할 수 있습니다."
     }
   }
 }

@@ -8,6 +8,7 @@ export type Theme = {
   cellBgSelected: string;
   cellBgPeer: string;
   cellBgSameDigit: string;
+  cellBgInvalid: string;
   textGiven: string;
   textInput: string;
   textConflict: string;
@@ -18,9 +19,10 @@ export type Theme = {
   buttonBgActive: string;
   border: string;
   accent: string;
+  scrim: string;
 };
 
-export const lightTheme: Theme = {
+const lightBase: Theme = {
   bg: '#ffffff',
   bgElevated: '#f7f7f7',
   text: '#1a1a1a',
@@ -30,6 +32,7 @@ export const lightTheme: Theme = {
   cellBgSelected: '#cfe1ff',
   cellBgPeer: '#eef2f7',
   cellBgSameDigit: '#d8e9ff',
+  cellBgInvalid: '#fde2e2',
   textGiven: '#1a1a1a',
   textInput: '#2563eb',
   textConflict: '#dc2626',
@@ -40,9 +43,10 @@ export const lightTheme: Theme = {
   buttonBgActive: '#cfe1ff',
   border: '#d4d4d8',
   accent: '#2563eb',
+  scrim: 'rgba(0,0,0,0.35)',
 };
 
-export const darkTheme: Theme = {
+const darkBase: Theme = {
   bg: '#0a0a0a',
   bgElevated: '#161618',
   text: '#ededed',
@@ -52,6 +56,7 @@ export const darkTheme: Theme = {
   cellBgSelected: '#1e3a5f',
   cellBgPeer: '#202024',
   cellBgSameDigit: '#2a4870',
+  cellBgInvalid: '#4a1d1d',
   textGiven: '#ededed',
   textInput: '#60a5fa',
   textConflict: '#f87171',
@@ -62,4 +67,18 @@ export const darkTheme: Theme = {
   buttonBgActive: '#1e3a5f',
   border: '#2a2a2e',
   accent: '#60a5fa',
+  scrim: 'rgba(0,0,0,0.55)',
 };
+
+export function makeTheme(isDark: boolean, colorBlind: boolean): Theme {
+  const base = isDark ? darkBase : lightBase;
+  if (!colorBlind) return base;
+  return {
+    ...base,
+    textConflict: isDark ? '#fbbf24' : '#b45309',
+    cellBgInvalid: isDark ? '#3a2a0d' : '#fef0c7',
+  };
+}
+
+export const lightTheme = lightBase;
+export const darkTheme = darkBase;

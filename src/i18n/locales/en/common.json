@@ -13,11 +13,133 @@
       "redo": "Redo",
       "new": "New",
       "theme": "Theme",
-      "lang": "Lang"
+      "lang": "Lang",
+      "auto_pencil": "Auto Pencil",
+      "hint": "Hint",
+      "apply_hint": "Apply",
+      "dismiss": "Dismiss",
+      "validate": "Check",
+      "fill_candidates": "Fill Notes",
+      "settings": "Settings",
+      "puzzle_io": "Puzzle",
+      "learn": "Learn"
     },
     "status": {
       "completed": "Completed!",
-      "conflicts": "Conflicts detected"
+      "conflicts": "Conflicts detected",
+      "no_hint": "No applicable technique on the current board."
+    },
+    "confirm": {
+      "new_game_title": "Start a new game?",
+      "new_game_message": "Your current progress will be lost.",
+      "confirm": "New Game",
+      "cancel": "Cancel"
+    }
+  },
+  "learn": {
+    "title": "Learn",
+    "back": "← Back",
+    "coming_soon": "Coming soon",
+    "lessons_ready": "{{ready}}/{{total}} lessons",
+    "lessons_partial": "{{ready}}/{{total}} lessons ready",
+    "visual_lesson": "Visual Lesson",
+    "start_example": "Try on Puzzle",
+    "lesson": {
+      "play": "Play",
+      "pause": "Pause",
+      "replay": "Replay",
+      "no_example": "No example board ready for this lesson yet.",
+      "no_step": "No applicable technique found on the example board.",
+      "mismatch": "The first step on this example is [{{actual}}]. The lesson will use that technique."
+    }
+  },
+  "io": {
+    "title": "Import / Export Puzzle",
+    "import_label": "Paste an 81-character puzzle string",
+    "import_button": "Load",
+    "export_label": "Current puzzle (starting state)",
+    "copy": "Copy",
+    "copied": "Copied",
+    "close": "Close",
+    "placeholder": "e.g. 53..7....6..195....98....6.8...6...3 ...",
+    "helper": "{{count}}/81 chars",
+    "errors": {
+      "length": "Must be exactly 81 characters.",
+      "chars": "Only digits 0-9 and . are allowed.",
+      "conflict": "The board has conflicts.",
+      "unsolvable": "Puzzle has no solution."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "highlight_same_digit": "Highlight same digit",
+    "highlight_peers": "Highlight row/col/box",
+    "color_blind": "Color-blind friendly",
+    "font_scale": "Font size",
+    "font_sm": "Small",
+    "font_md": "Medium",
+    "font_lg": "Large",
+    "close": "Close"
+  },
+  "units": {
+    "row": "row",
+    "col": "column",
+    "box": "box"
+  },
+  "keyboard": {
+    "title": "Keyboard shortcuts",
+    "show": "Shortcuts",
+    "hide": "Hide shortcuts",
+    "navigate": "Move selection",
+    "input": "Enter digit / pencil mark",
+    "erase": "Erase",
+    "toggle_mode": "Toggle value / pencil mode",
+    "undo": "Undo",
+    "redo": "Redo",
+    "hint": "Request hint",
+    "validate": "Check",
+    "dismiss_hint": "Dismiss hint"
+  },
+  "techniques": {
+    "naked_single": {
+      "name": "Naked Single",
+      "step": "Cell at row {{row}}, column {{col}} can only be {{digit}}."
+    },
+    "hidden_single": {
+      "name": "Hidden Single",
+      "step": "In $t(units.{{unit}}) {{unitIndex}}, {{digit}} can only go at ({{row}}, {{col}})."
+    },
+    "locked_candidates_pointing": {
+      "name": "Pointing",
+      "step": "In box {{box}}, {{digit}} is locked to a single $t(units.{{line}}); it can be eliminated from {{digit}}'s cells in $t(units.{{line}}) {{lineIndex}} outside the box."
+    },
+    "locked_candidates_claiming": {
+      "name": "Claiming",
+      "step": "In $t(units.{{line}}) {{lineIndex}}, {{digit}} is confined to box {{box}}; it can be eliminated from the rest of that box."
+    },
+    "naked_pair": {
+      "name": "Naked Pair",
+      "step": "In $t(units.{{unit}}) {{unitIndex}}, two cells share only candidates {{digits}}; those digits can be eliminated from the other cells in this unit."
+    },
+    "hidden_pair": {
+      "name": "Hidden Pair",
+      "step": "In $t(units.{{unit}}) {{unitIndex}}, candidates {{digits}} appear only in the same two cells; other candidates in those cells can be eliminated."
+    },
+    "naked_triple": {
+      "name": "Naked Triple",
+      "step": "In $t(units.{{unit}}) {{unitIndex}}, three cells together hold exactly candidates {{digits}}; those digits can be eliminated from other cells in this unit."
+    },
+    "hidden_triple": {
+      "name": "Hidden Triple",
+      "step": "In $t(units.{{unit}}) {{unitIndex}}, candidates {{digits}} appear only in the same three cells; other candidates in those cells can be eliminated."
+    },
+    "naked_quad": {
+      "name": "Naked Quad",
+      "step": "In $t(units.{{unit}}) {{unitIndex}}, four cells together hold exactly candidates {{digits}}; those digits can be eliminated from other cells in this unit."
+    },
+    "hidden_quad": {
+      "name": "Hidden Quad",
+      "step": "In $t(units.{{unit}}) {{unitIndex}}, candidates {{digits}} appear only in the same four cells; other candidates in those cells can be eliminated."
     }
   }
 }

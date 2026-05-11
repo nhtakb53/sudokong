@@ -4,8 +4,14 @@ import { getLocales } from 'expo-localization';
 import ko from './locales/ko/common.json';
 import en from './locales/en/common.json';
 
-const deviceLang = getLocales()[0]?.languageCode ?? 'en';
-const initial = deviceLang === 'ko' ? 'ko' : 'en';
+export type Lang = 'ko' | 'en';
+
+export function getDeviceLang(): Lang {
+  const code = getLocales()[0]?.languageCode ?? 'en';
+  return code === 'ko' ? 'ko' : 'en';
+}
+
+const initial: Lang = getDeviceLang();
 
 void i18n.use(initReactI18next).init({
   resources: {

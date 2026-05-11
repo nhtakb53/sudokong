@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
-import { darkTheme, lightTheme, type Theme } from './tokens';
-
-export type ThemeMode = 'system' | 'light' | 'dark';
+import { useGame, type ThemeMode } from '../../game/store';
+import { makeTheme, type Theme } from './tokens';
 
 type Ctx = {
   theme: Theme;
@@ -16,9 +15,12 @@ const ThemeContext = createContext<Ctx | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const sys = useColorScheme();
-  const [mode, setMode] = useState<ThemeMode>('system');
+  const mode = useGame((s) => s.settings.themeMode);
+  const colorBlind = useGame((s) => s.settings.colorBlind);
+  const setSetting = useGame((s) => s.setSetting);
   const isDark = mode === 'system' ? sys === 'dark' : mode === 'dark';
-  const theme = isDark ? darkTheme : lightTheme;
+  const theme = useMemo(() => makeTheme(isDark, colorBlind), [isDark, colorBlind]);
+  const setMode = (m: ThemeMode) => setSetting('themeMode', m);
   const toggle = () => setMode(isDark ? 'light' : 'dark');
   return (
     <ThemeContext.Provider value={{ theme, mode, isDark, setMode, toggle }}>
@@ -32,3 +34,5 @@ export function useTheme(): Ctx {
   if (!ctx) throw new Error('useTheme must be used inside <ThemeProvider>');
   return ctx;
 }
+
+export type { ThemeMode };
