@@ -88,6 +88,9 @@ export default function App() {
     const resume = () => useGame.getState().resume();
 
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      // Sync once on mount in case the page restored a paused state.
+      if (document.hidden) pause();
+      else resume();
       const handler = () => {
         if (document.hidden) pause();
         else resume();
@@ -96,6 +99,8 @@ export default function App() {
       return () => document.removeEventListener('visibilitychange', handler);
     }
 
+    if (AppState.currentState === 'active') resume();
+    else pause();
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') resume();
       else pause();

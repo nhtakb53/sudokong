@@ -69,13 +69,17 @@ export function Cell({ r, c, size }: Props) {
     setLockedDigit(lockedDigit === value ? null : (value as Digit));
   };
   const handlePress = (e: { target: unknown }) => {
+    const wasSelected = isSelected;
     select(r, c);
     if (Platform.OS === 'web') {
       const tgt = e.target as { blur?: () => void } | null;
       tgt?.blur?.();
     }
     const now = Date.now();
-    if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+    // Only treat as a double-tap when the second tap lands on the same cell
+    // that was already selected. Prevents fast moves between cells from
+    // accidentally toggling lockedDigit.
+    if (wasSelected && now - lastTapRef.current < DOUBLE_TAP_MS) {
       toggleLock();
       lastTapRef.current = 0;
     } else {

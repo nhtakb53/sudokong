@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { CellRole, Step, UnitKind, UnitRole } from '../../core/types';
 import { useTheme } from '../theme/ThemeProvider';
+import { AnimatedAppear } from './AnimatedAppear';
 
 const CELL_ROLE_BG: Record<CellRole, string> = {
   base: 'rgba(255, 215, 0, 0.22)',
@@ -26,11 +27,18 @@ export function StepOverlay({ step, cellSize }: Props) {
   const total = cellSize * 9;
 
   return (
-    <View pointerEvents="none" style={[styles.root, { width: total, height: total }]}>
+    <View
+      pointerEvents="none"
+      style={[styles.root, { width: total, height: total }]}
+    >
       {/* Cell role backgrounds */}
       {step.highlights.cells?.map((c, i) => (
-        <View
-          key={`cell-${i}`}
+        <AnimatedAppear
+          key={`cell-${c.r}-${c.c}-${c.role}`}
+          pulse
+          fromScale={0.7}
+          duration={420}
+          delay={i * 60}
           style={{
             position: 'absolute',
             left: c.c * cellSize,
@@ -39,13 +47,15 @@ export function StepOverlay({ step, cellSize }: Props) {
             height: cellSize,
             backgroundColor: CELL_ROLE_BG[c.role],
           }}
-        />
+        >
+          <View />
+        </AnimatedAppear>
       ))}
 
       {/* Unit outlines */}
       {step.highlights.units?.map((u, i) => (
         <UnitOutline
-          key={`unit-${i}`}
+          key={`unit-${u.kind}-${u.index}-${u.role}-${i}`}
           kind={u.kind}
           index={u.index}
           color={UNIT_ROLE_COLOR[u.role]}
@@ -55,8 +65,12 @@ export function StepOverlay({ step, cellSize }: Props) {
 
       {/* Placements: large translucent digit preview */}
       {step.placements.map((p, i) => (
-        <View
-          key={`p-${i}`}
+        <AnimatedAppear
+          key={`p-${p.r}-${p.c}-${p.digit}`}
+          bounce
+          fromScale={0.2}
+          duration={520}
+          delay={i * 80}
           style={{
             position: 'absolute',
             left: p.c * cellSize,
@@ -77,7 +91,7 @@ export function StepOverlay({ step, cellSize }: Props) {
           >
             {p.digit}
           </Text>
-        </View>
+        </AnimatedAppear>
       ))}
 
       {/* Eliminations: red × over the pencil-grid position */}
@@ -86,8 +100,12 @@ export function StepOverlay({ step, cellSize }: Props) {
         const pr = Math.floor((e.digit - 1) / 3);
         const pc = (e.digit - 1) % 3;
         return (
-          <View
-            key={`e-${i}`}
+          <AnimatedAppear
+            key={`e-${e.r}-${e.c}-${e.digit}`}
+            bounce
+            fromScale={0.2}
+            duration={360}
+            delay={i * 80}
             style={{
               position: 'absolute',
               left: e.c * cellSize + pc * sub,
@@ -108,7 +126,7 @@ export function StepOverlay({ step, cellSize }: Props) {
             >
               ×
             </Text>
-          </View>
+          </AnimatedAppear>
         );
       })}
     </View>
@@ -143,7 +161,9 @@ function UnitOutline({
     height = cellSize * 3;
   }
   return (
-    <View
+    <AnimatedAppear
+      fromScale={0.92}
+      duration={260}
       style={{
         position: 'absolute',
         left,
@@ -154,7 +174,9 @@ function UnitOutline({
         borderWidth: 2,
         borderRadius: 2,
       }}
-    />
+    >
+      <View />
+    </AnimatedAppear>
   );
 }
 

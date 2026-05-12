@@ -8,12 +8,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { parseBoard } from '../../core/board';
-import type { Board, Step } from '../../core/types';
+import { cloneBoard, parseBoard } from '../../core/board';
+import { computeAllCandidates } from '../../core/candidates';
+import type { Board } from '../../core/types';
 import { type Lesson } from '../../learn/courses';
 import { buildFrames, getTechniqueName } from '../../learn/animation';
-import { nextStep } from '../../solver/solver';
+import { applyStep, nextStep } from '../../solver/solver';
 import { useTheme } from '../theme/ThemeProvider';
+import { AnimatedAppear } from './AnimatedAppear';
 import { LessonBoard } from './LessonBoard';
 
 type Props = {
@@ -35,13 +37,32 @@ export function LessonViewer({ visible, lesson, lang, onClose }: Props) {
 
   const prepared = useMemo(() => {
     if (!lesson?.example) return null;
-    let board: Board;
+    let original: Board;
     try {
-      board = parseBoard(lesson.example);
+      original = parseBoard(lesson.example);
     } catch {
       return null;
     }
-    const step = nextStep(board);
+    let board = cloneBoard(original);
+    let candidates = computeAllCandidates(board);
+    let step = nextStep(board, candidates);
+    // Try to fast-forward to the lesson's target technique. If never found,
+    // fall back to the original board's first step (mismatch banner shows).
+    if (lesson.techniqueId) {
+      let safety = 200;
+      while (step && step.technique !== lesson.techniqueId && safety-- > 0) {
+        if (step.placements.length === 0 && step.eliminations.length === 0) {
+          break;
+        }
+        applyStep(board, step, candidates);
+        step = nextStep(board, candidates);
+      }
+      if (!step || step.technique !== lesson.techniqueId) {
+        board = cloneBoard(original);
+        candidates = computeAllCandidates(board);
+        step = nextStep(board, candidates);
+      }
+    }
     if (!step) return { board, step: null, frames: [] };
     return { board, step, frames: buildFrames(step) };
   }, [lesson]);
@@ -88,7 +109,11 @@ export function LessonViewer({ visible, lesson, lang, onClose }: Props) {
         </Text>
       );
     }
-    const frame = prepared.frames[frameIndex];
+    const safeIdx = Math.min(
+      Math.max(0, frameIndex),
+      prepared.frames.length - 1,
+    );
+    const frame = prepared.frames[safeIdx];
     const matchesTechnique =
       lesson.techniqueId == null ||
       lesson.techniqueId === prepared.step.technique;
@@ -118,9 +143,11 @@ export function LessonViewer({ visible, lesson, lang, onClose }: Props) {
             { backgroundColor: theme.bg, borderColor: theme.border },
           ]}
         >
-          <Text style={[styles.body, { color: theme.text }]}>
-            {frame.description[lang]}
-          </Text>
+          <AnimatedAppear key={`desc-${safeIdx}`} fromScale={0.98} duration={260}>
+            <Text style={[styles.body, { color: theme.text }]}>
+              {frame.description[lang]}
+            </Text>
+          </AnimatedAppear>
         </View>
         <View style={styles.controls}>
           <Pressable
@@ -187,8 +214,20 @@ export function LessonViewer({ visible, lesson, lang, onClose }: Props) {
           </Pressable>
 
           <Text style={[styles.progress, { color: theme.textMuted }]}>
-            {frameIndex + 1} / {prepared.frames.length}
+            {safeIdx + 1} / {prepared.frames.length}
           </Text>
+        </View>
+        <View
+          style={[styles.progressTrack, { backgroundColor: theme.border }]}
+        >
+          <View
+            style={{
+              width: `${((safeIdx + 1) / prepared.frames.length) * 100}%`,
+              height: '100%',
+              backgroundColor: theme.accent,
+              borderRadius: 2,
+            }}
+          />
         </View>
       </>
     );
@@ -303,4 +342,5 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   progress: { fontSize: 12, marginLeft: 8 },
+  progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden' },
 });

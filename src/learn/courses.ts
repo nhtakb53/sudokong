@@ -52,7 +52,8 @@ export const COURSES: Course[] = [
           '한 행/열/박스에서 어떤 숫자가 들어갈 수 있는 칸이 한 곳뿐이면, 다른 후보들이 있어도 그 자리가 답입니다.',
           'When a digit can only be placed in one cell within a row/column/box, that cell is the answer even if it has other candidates.',
         ),
-        example: PUZZLES.EASY,
+        example:
+          '4.27.6...........656..1..7.....5.21.1.......8.87.9.....3..7..658...........9.84.1',
         status: 'available',
       },
     ],
@@ -74,7 +75,8 @@ export const COURSES: Course[] = [
           '한 유닛 안 두 칸이 정확히 같은 후보 두 개만 가지면, 그 두 숫자는 반드시 그 두 칸에 들어갑니다. 같은 유닛의 다른 칸에서 두 후보를 모두 제거할 수 있습니다.',
           'If two cells in a unit hold exactly the same two candidates, those digits must occupy those cells — eliminate them from the rest of the unit.',
         ),
-        example: PUZZLES.MEDIUM,
+        example:
+          '76284913513.756.8.58.123...61593472.24761.358398257614.732658.1..1.78...8.6.91...',
         status: 'available',
       },
       {
@@ -85,7 +87,8 @@ export const COURSES: Course[] = [
           '한 유닛에서 두 숫자가 같은 두 칸에만 등장하면, 그 두 칸의 다른 후보는 모두 제거할 수 있습니다.',
           'If two digits appear only in the same two cells of a unit, all other candidates in those cells can be removed.',
         ),
-        example: PUZZLES.MEDIUM,
+        example:
+          '72.4.8.3..8.....474.1.768.281.739......851......264.8.2.968.41334......8168943275',
         status: 'available',
       },
       {
@@ -107,7 +110,8 @@ export const COURSES: Course[] = [
           '세 숫자가 같은 세 칸에만 등장합니다.',
           'Three digits appearing only in the same three cells.',
         ),
-        example: PUZZLES.MEDIUM,
+        example:
+          '28....473534827196.71.34.8.3..5...4....34..6.46.79.31..9.2.3654..3..9821....8.937',
         status: 'available',
       },
       {
@@ -115,7 +119,8 @@ export const COURSES: Course[] = [
         techniqueId: 'naked_quad',
         title: t('노출 쿼드 (Naked Quad)', 'Naked Quad'),
         desc: t('네 칸 네 후보.', 'Four cells, four candidates.'),
-        example: PUZZLES.HARD,
+        example:
+          '.1.72.563.56.3.247732546189693287415247615938581394........2...........1..587....',
         status: 'available',
       },
       {
@@ -145,7 +150,8 @@ export const COURSES: Course[] = [
           '한 박스 안에서 어떤 숫자가 단 한 행(또는 열)에만 위치하면, 그 행/열의 박스 밖 셀에서 그 숫자를 제거할 수 있습니다.',
           'If a digit inside a box appears only in one row (or column), it can be removed from that row/column outside the box.',
         ),
-        example: PUZZLES.HARD,
+        example:
+          '4.27.6...........6568.1..7....85.21.1.......8.87.9.....3..7.8658...........9.84.1',
         status: 'available',
       },
       {
@@ -156,7 +162,8 @@ export const COURSES: Course[] = [
           '한 행(또는 열)에서 어떤 숫자가 단 한 박스에만 위치하면, 그 박스 안의 다른 셀에서 그 숫자를 제거할 수 있습니다.',
           'If a digit in a row/column appears only inside one box, it can be removed from the rest of that box.',
         ),
-        example: PUZZLES.HARD,
+        example:
+          '318..54.6...6.381...6.8.5.3864952137123476958795318264.3.5..78......73.5....39641',
         status: 'available',
       },
     ],
@@ -170,7 +177,18 @@ export const COURSES: Course[] = [
       'A digit forming a rectangle across two rows and two columns.',
     ),
     lessons: [
-      { id: 'x_wing', title: t('엑스윙 (X-Wing)', 'X-Wing'), desc: t('두 행에서 어떤 숫자의 후보가 정확히 같은 두 열에만 있으면, 그 두 열의 다른 칸에서 그 숫자를 제거할 수 있습니다.', 'If a digit appears in only the same two columns across two rows, those columns can be cleared elsewhere.'), status: 'coming_soon' },
+      {
+        id: 'x_wing',
+        techniqueId: 'x_wing',
+        title: t('엑스윙 (X-Wing)', 'X-Wing'),
+        desc: t(
+          '두 행에서 어떤 숫자의 후보가 정확히 같은 두 열에만 있으면, 그 두 열의 다른 칸에서 그 숫자를 제거할 수 있습니다. 두 열을 기준으로 한 변형도 동일.',
+          'If a digit appears in only the same two columns across two rows, those columns can be cleared elsewhere. The column-based variant is symmetric.',
+        ),
+        example:
+          '000000004760010050090002081070050010000709000080030060240100070010090045900000000',
+        status: 'available',
+      },
       { id: 'skyscraper', title: t('스카이스크래퍼 (Skyscraper)', 'Skyscraper'), desc: t('X-Wing의 친척. 두 strong link이 한쪽 박스를 공유.', "X-Wing's cousin: two strong links sharing one box."), status: 'coming_soon' },
       { id: 'two_string_kite', title: t('투-스트링 카이트 (2-String Kite)', '2-String Kite'), desc: t('행 strong link과 열 strong link이 한 박스에서 만남.', 'A row link and a column link meeting in one box.'), status: 'coming_soon' },
       { id: 'empty_rectangle', title: t('빈 직사각형 (Empty Rectangle)', 'Empty Rectangle'), desc: t('박스 안 어떤 숫자의 후보들이 한 행과 한 열에 갇혀 있는 패턴.', 'A digit inside a box confined to one row and one column.'), status: 'coming_soon' },

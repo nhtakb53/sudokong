@@ -21,6 +21,7 @@ const TECH_NAME: Record<string, LocalizedText> = {
   hidden_triple: T('숨은 트리플', 'Hidden Triple'),
   naked_quad: T('노출 쿼드', 'Naked Quad'),
   hidden_quad: T('숨은 쿼드', 'Hidden Quad'),
+  x_wing: T('엑스윙', 'X-Wing'),
 };
 
 export function getTechniqueName(id: string): LocalizedText {

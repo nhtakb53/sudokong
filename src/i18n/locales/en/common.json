@@ -140,6 +140,10 @@
     "hidden_quad": {
       "name": "Hidden Quad",
       "step": "In $t(units.{{unit}}) {{unitIndex}}, candidates {{digits}} appear only in the same four cells; other candidates in those cells can be eliminated."
+    },
+    "x_wing": {
+      "name": "X-Wing",
+      "step": "Digit {{digit}} appears in exactly the same two positions ({{cover1}}, {{cover2}}) across two lines ({{base1}} and {{base2}}). So {{digit}} can be eliminated from those positions in the other lines."
     }
   }
 }
