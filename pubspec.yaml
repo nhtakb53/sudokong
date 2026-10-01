@@ -1,0 +1,10 @@
+name: sudokong_workspace
+description: Workspace root for the sudokong app and its pure Dart engine.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - packages/sudoku_engine
+  - app

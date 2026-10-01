@@ -1,0 +1,25 @@
+# Dart / Flutter
+.dart_tool/
+build/
+.packages
+*.iml
+.idea/
+.DS_Store
+
+# Workspace members resolve through the root lock file.
+app/pubspec.lock
+packages/*/pubspec.lock
+
+# Flutter app
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/android/local.properties
+app/android/key.properties
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/ephemeral/
+app/ios/Flutter/Flutter.podspec
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/Runner.xcworkspace/xcuserdata/
+app/ios/Runner.xcodeproj/xcuserdata/

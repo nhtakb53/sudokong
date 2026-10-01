@@ -1,0 +1,47 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'core/theme/app_theme.dart';
+import 'features/play/game_timer.dart';
+import 'features/play/play_screen.dart';
+import 'features/settings/settings_provider.dart';
+
+class SudokongApp extends ConsumerStatefulWidget {
+  const SudokongApp({super.key});
+
+  @override
+  ConsumerState<SudokongApp> createState() => _SudokongAppState();
+}
+
+class _SudokongAppState extends ConsumerState<SudokongApp> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // Leaving the app pauses the clock; the player resumes it by hand.
+    _lifecycle = AppLifecycleListener(
+      onHide: () => ref.read(gameTimerProvider.notifier).pause(),
+      onPause: () => ref.read(gameTimerProvider.notifier).pause(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
+    return MaterialApp(
+      title: 'Sudokong',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(settings.colorTheme),
+      darkTheme: AppTheme.dark(settings.colorTheme),
+      themeMode: settings.themeMode,
+      home: const PlayScreen(),
+    );
+  }
+}
