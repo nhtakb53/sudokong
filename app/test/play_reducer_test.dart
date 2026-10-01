@@ -636,6 +636,64 @@ void main() {
     });
   });
 
+  group('what-if', () {
+    test('starts, marks new digits, commits or reverts in one step', () {
+      var s = reduce(fresh(), const SelectCell(2));
+      s = reduce(s, const EnterDigit(4)); // before the what-if
+      s = reduce(s, const StartHypothesis());
+      expect(s.hypothesis, isNotNull);
+      expect(s.hypothesisEntries, 0);
+      expect(s.isHypothesisEntry(2), isFalse, reason: 'placed earlier');
+      s = reduce(s, const SelectCell(3));
+      s = reduce(s, const EnterDigit(6));
+      s = reduce(s, const SelectCell(5));
+      s = reduce(s, const EnterDigit(2));
+      expect(s.hypothesisEntries, 2);
+      expect(s.isHypothesisEntry(3), isTrue);
+      expect(identical(reduce(s, const StartHypothesis()), s), isTrue);
+      final kept = reduce(s, const CommitHypothesis());
+      expect(kept.hypothesis, isNull);
+      expect(kept.values[3], 6, reason: 'commit keeps the digits');
+      final back = reduce(s, const RevertHypothesis());
+      expect(back.hypothesis, isNull);
+      expect(back.values[3], 0);
+      expect(back.values[5], 0);
+      expect(back.values[2], 4, reason: 'earlier work stays');
+      expect(back.canUndo, isTrue);
+      expect(reduce(back, const Undo()).values[3], 6, reason: 'undoable');
+      expect(identical(reduce(back, const RevertHypothesis()), back), isTrue);
+    });
+
+    test('solving the board ends the what-if', () {
+      final cells = GridCodec.parse(_solution);
+      cells[2] = 0;
+      var s = PlayState(
+        givens: GridCodec.parse(_puzzle),
+        solution: GridCodec.parse(_solution),
+        values: cells,
+        notes: Uint16List(81),
+        seed: 1,
+      );
+      s = reduce(s, const StartHypothesis());
+      s = reduce(s, const SelectCell(2));
+      s = reduce(s, const EnterDigit(4));
+      expect(s.completed, isTrue);
+      expect(s.hypothesis, isNull);
+    });
+  });
+
+  test('auto highlight off: taps select without lighting the digit', () {
+    var s = reduce(fresh(), const SelectCell(0), autoHighlight: false);
+    expect(s.activeDigit, 5);
+    expect(s.highlightOrder, isEmpty);
+    s = reduce(s, const EnterDigit(7), autoHighlight: false);
+    expect(s.highlightOrder, isEmpty);
+    s = reduce(s, const HoldDigit(7), autoHighlight: false);
+    expect(s.highlightOrder, [7], reason: 'a long press still highlights');
+    s = reduce(s, const SelectCell(2), autoHighlight: false);
+    expect(s.highlightOrder, [7], reason: 'pinned, so it stays');
+  });
+
   test('placing the last digit completes the game and locks the board', () {
     // Start from the solution with one cell blanked.
     final cells = GridCodec.parse(_solution);

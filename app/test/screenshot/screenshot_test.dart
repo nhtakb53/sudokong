@@ -151,6 +151,20 @@ class _LinkedPlayController extends _QuietPlayController {
   }
 }
 
+/// A what-if in progress with two purple digits, 7 highlighted.
+class _WhatIfPlayController extends _QuietPlayController {
+  @override
+  Future<PlayState> build() async {
+    var s = reduce(_sampleState(), const FillCandidates());
+    s = reduce(s, const StartHypothesis());
+    s = reduce(s, const SelectCell(3));
+    s = reduce(s, const EnterDigit(6));
+    s = reduce(s, const SelectCell(10));
+    s = reduce(s, const EnterDigit(2));
+    return reduce(s, const HoldDigit(7));
+  }
+}
+
 /// All candidates filled, with both count filters switched on.
 class _FilteredPlayController extends _QuietPlayController {
   @override
@@ -205,6 +219,7 @@ Future<void> _pumpApp(
   String? seededSettings,
   bool candidates = false,
   bool filters = false,
+  bool whatIf = false,
   bool links = false,
   bool paint = false,
   bool multi = false,
@@ -236,6 +251,8 @@ Future<void> _pumpApp(
               ? _NoteModePlayController.new
               : filters
               ? _FilteredPlayController.new
+              : whatIf
+              ? _WhatIfPlayController.new
               : links
               ? _LinkedPlayController.new
               : paint
@@ -352,6 +369,21 @@ void main() {
       );
       await tester.runAsync(
         () => _capture(tester, 'play_paint_${brightness.name}'),
+      );
+    }, skip: !_enabled);
+
+    testWidgets('what-if with conjugate pairs (${brightness.name})', (
+      tester,
+    ) async {
+      await _pumpApp(
+        tester,
+        brightness: brightness,
+        home: const PlayScreen(),
+        whatIf: true,
+        seededSettings: '{"v":1,"conjugatePairs":true}',
+      );
+      await tester.runAsync(
+        () => _capture(tester, 'play_whatif_${brightness.name}'),
       );
     }, skip: !_enabled);
 

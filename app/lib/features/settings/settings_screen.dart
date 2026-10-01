@@ -130,6 +130,20 @@ class SettingsScreen extends ConsumerWidget {
                         onChanged: notifier.setLinkVisibility,
                       ),
                     ),
+                    SettingsRow(
+                      title: '같은 숫자 자동 강조',
+                      trailing: Switch(
+                        value: settings.autoHighlight,
+                        onChanged: notifier.setAutoHighlight,
+                      ),
+                    ),
+                    SettingsRow(
+                      title: '타이머 표시',
+                      trailing: Switch(
+                        value: settings.showTimer,
+                        onChanged: notifier.setShowTimer,
+                      ),
+                    ),
                   ],
                 ),
               ],

@@ -58,6 +58,7 @@ class BoardColors extends ThemeExtension<BoardColors> {
     required this.linkWeak,
     required this.linkStrongText,
     required this.linkWeakText,
+    required this.hypothesis,
   });
 
   final Color cell;
@@ -97,6 +98,10 @@ class BoardColors extends ThemeExtension<BoardColors> {
   /// Digits on the chips at a link's ends (and on the start chip).
   final Color linkStrongText;
   final Color linkWeakText;
+
+  /// Digits placed during a what-if, and the board's border while one is
+  /// on.
+  final Color hypothesis;
 
   /// Colors for the second to ninth digit highlighted at once: amber,
   /// peach, green, violet, pink, teal, lime, gray.
@@ -142,6 +147,7 @@ class BoardColors extends ThemeExtension<BoardColors> {
     linkWeak: Color(0xFF54728F),
     linkStrongText: Color(0xFFFFFFFF),
     linkWeakText: Color(0xFFFFFFFF),
+    hypothesis: Color(0xFF7A52C9),
     extraSlots: [
       // amber
       HighlightSlot(
@@ -221,6 +227,7 @@ class BoardColors extends ThemeExtension<BoardColors> {
     linkWeak: Color(0xFF8FA8C8),
     linkStrongText: Color(0xFF2A1508),
     linkWeakText: Color(0xFF0E1B33),
+    hypothesis: Color(0xFFC4A8F5),
     extraSlots: [
       // amber
       HighlightSlot(
@@ -296,6 +303,7 @@ class BoardColors extends ThemeExtension<BoardColors> {
     Color? linkWeak,
     Color? linkStrongText,
     Color? linkWeakText,
+    Color? hypothesis,
   }) {
     return BoardColors(
       cell: cell ?? this.cell,
@@ -319,6 +327,7 @@ class BoardColors extends ThemeExtension<BoardColors> {
       linkWeak: linkWeak ?? this.linkWeak,
       linkStrongText: linkStrongText ?? this.linkStrongText,
       linkWeakText: linkWeakText ?? this.linkWeakText,
+      hypothesis: hypothesis ?? this.hypothesis,
     );
   }
 
@@ -360,6 +369,7 @@ class BoardColors extends ThemeExtension<BoardColors> {
       linkWeak: Color.lerp(linkWeak, other.linkWeak, t)!,
       linkStrongText: Color.lerp(linkStrongText, other.linkStrongText, t)!,
       linkWeakText: Color.lerp(linkWeakText, other.linkWeakText, t)!,
+      hypothesis: Color.lerp(hypothesis, other.hypothesis, t)!,
     );
   }
 }

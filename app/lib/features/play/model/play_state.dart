@@ -65,6 +65,14 @@ class NoteLink {
 /// One end of a link being drawn.
 typedef LinkEnd = ({int cell, int digit});
 
+/// A what-if in progress: the board as it was when it started, to keep
+/// or go back to.
+@immutable
+class Hypothesis {
+  const Hypothesis(this.board);
+  final BoardSnapshot board;
+}
+
 /// What a tap paints while paint mode is on.
 enum PaintTarget { cell, note }
 
@@ -111,6 +119,7 @@ class PlayState {
     this.links = const [],
     this.linkStart,
     this.linkArmed = false,
+    this.hypothesis,
   }) : cellColors = cellColors ?? kNoCellColors,
        noteColors = noteColors ?? kNoNoteColors;
 
@@ -163,6 +172,28 @@ class PlayState {
 
   /// True while the link tool is the armed tool, so mark taps draw links.
   final bool linkArmed;
+
+  /// The what-if in progress, or null.
+  final Hypothesis? hypothesis;
+
+  /// True for a digit placed (or changed) since the what-if began.
+  bool isHypothesisEntry(int index) {
+    final h = hypothesis;
+    return h != null &&
+        values[index] != 0 &&
+        values[index] != h.board.values[index];
+  }
+
+  /// Digits placed since the what-if began.
+  int get hypothesisEntries {
+    final h = hypothesis;
+    if (h == null) return 0;
+    var n = 0;
+    for (var i = 0; i < 81; i++) {
+      if (values[i] != 0 && values[i] != h.board.values[i]) n++;
+    }
+    return n;
+  }
 
   /// Given digits, 0 where the cell was empty at the start.
   final Uint8List givens;
@@ -256,6 +287,8 @@ class PlayState {
     LinkEnd? linkStart,
     bool clearLinkStart = false,
     bool? linkArmed,
+    Hypothesis? hypothesis,
+    bool clearHypothesis = false,
   }) {
     return PlayState(
       givens: givens,
@@ -280,6 +313,7 @@ class PlayState {
       links: links ?? this.links,
       linkStart: clearLinkStart ? null : (linkStart ?? this.linkStart),
       linkArmed: linkArmed ?? this.linkArmed,
+      hypothesis: clearHypothesis ? null : (hypothesis ?? this.hypothesis),
     );
   }
 

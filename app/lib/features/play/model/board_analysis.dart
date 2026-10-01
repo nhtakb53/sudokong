@@ -34,3 +34,32 @@ bool isSolved(Uint8List values) {
   }
   return true;
 }
+
+/// Conjugate pairs of [digit]: the two cells of a unit that alone hold it
+/// as a candidate. Each pair appears once, however many units share it.
+List<(int, int)> conjugatePairs(Uint16List notes, int digit) {
+  final t = Tables.instance;
+  final bit = 1 << (digit - 1);
+  final pairs = <(int, int)>[];
+  for (var u = 0; u < 27; u++) {
+    var a = -1;
+    var b = -1;
+    var count = 0;
+    for (var k = 0; k < 9; k++) {
+      final cell = t.units[u * 9 + k];
+      if (notes[cell] & bit == 0) continue;
+      count++;
+      if (count == 1) {
+        a = cell;
+      } else if (count == 2) {
+        b = cell;
+      } else {
+        break;
+      }
+    }
+    if (count != 2) continue;
+    final pair = a < b ? (a, b) : (b, a);
+    if (!pairs.contains(pair)) pairs.add(pair);
+  }
+  return pairs;
+}

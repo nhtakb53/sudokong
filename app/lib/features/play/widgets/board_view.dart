@@ -150,6 +150,9 @@ class _BoardViewState extends ConsumerState<BoardView> {
     _linkVisibility = ref.watch(
       settingsProvider.select((s) => s.linkVisibility),
     );
+    final conjugates = ref.watch(
+      settingsProvider.select((s) => s.conjugatePairs),
+    );
     return AspectRatio(
       aspectRatio: kBoardAspectRatio,
       child: LayoutBuilder(
@@ -183,6 +186,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
                   fontFamily: AppTheme.fontFamily,
                   noteHighlightShape: shape,
                   linkVisibility: _linkVisibility,
+                  showConjugates: conjugates,
                 ),
               ),
             ),

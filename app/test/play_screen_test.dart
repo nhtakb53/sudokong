@@ -192,7 +192,7 @@ void main() {
     await pumpPlay(tester);
     await tester.tap(find.byTooltip('후보 채움'));
     await tester.pump();
-    await tester.tap(find.text('연결'));
+    await tester.tap(find.byTooltip('연결'));
     await tester.pump();
     expect(state().linkArmed, isTrue);
     // Mark 4 sits in the middle-left slot of its cell.
@@ -229,7 +229,7 @@ void main() {
     expect(state().cellColors[0], 2);
     expect(state().selected, isNull, reason: 'painting does not select');
 
-    await tester.tap(find.text('지우개'));
+    await tester.tap(find.byTooltip('지우개'));
     await tester.pump();
     await tester.tapAt(cellCenter(tester, 0, 0));
     await tester.pump();
@@ -241,6 +241,39 @@ void main() {
     await tester.tapAt(cellCenter(tester, 0, 0));
     await tester.pump();
     expect(state().selected, 0, reason: 'taps select again');
+  });
+
+  testWidgets('the conjugate-pair button toggles the stored setting', (
+    tester,
+  ) async {
+    await pumpPlay(tester);
+    expect(container.read(settingsProvider).conjugatePairs, isFalse);
+    await tester.tap(find.byTooltip('켤레쌍'));
+    await tester.pump();
+    expect(container.read(settingsProvider).conjugatePairs, isTrue);
+    await tester.tap(find.byTooltip('켤레쌍'));
+    await tester.pump();
+    expect(container.read(settingsProvider).conjugatePairs, isFalse);
+  });
+
+  testWidgets('the what-if button starts, then offers commit or revert', (
+    tester,
+  ) async {
+    await pumpPlay(tester);
+    await tester.tap(find.byTooltip('가정'));
+    await tester.pump();
+    expect(state().hypothesis, isNotNull);
+    await tester.tapAt(cellCenter(tester, 0, 2));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('numpad-4')));
+    await tester.pump();
+    expect(state().hypothesisEntries, 1);
+    await tester.tap(find.byTooltip('가정'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('시작 시점으로 되돌리기'));
+    await tester.pumpAndSettle();
+    expect(state().hypothesis, isNull);
+    expect(state().values[2], 0);
   });
 
   testWidgets('the top-row button wipes paint and links in one go', (
@@ -281,16 +314,16 @@ void main() {
     tester,
   ) async {
     await pumpPlay(tester);
-    await tester.tap(find.text('후보 2개'));
+    await tester.tap(find.byTooltip('후보 2개'));
     await tester.pump();
     expect(state().highlightsNoteCount(2), isTrue);
     expect(state().highlightsNoteCount(3), isFalse);
 
-    await tester.tap(find.text('후보 3개'));
+    await tester.tap(find.byTooltip('후보 3개'));
     await tester.pump();
     expect(state().highlightsNoteCount(3), isTrue);
 
-    await tester.tap(find.text('후보 2개'));
+    await tester.tap(find.byTooltip('후보 2개'));
     await tester.pump();
     expect(state().highlightsNoteCount(2), isFalse);
     expect(state().highlightsNoteCount(3), isTrue);

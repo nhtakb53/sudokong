@@ -42,13 +42,20 @@ const double kNoteChipRadius = 3;
 
 /// Links between pencil marks: stroke, dash pattern for weak links, the
 /// strong/weak handle, and the chips on the two ends.
-const double kLinkWidth = 2.2;
+const double kLinkWidth = 1.8;
 const double kLinkDashOn = 6;
 const double kLinkDashOff = 4;
 const double kLinkHandleRadius = 2.6;
 
 /// Halo around the mark the next link starts from, past its chip.
 const double kLinkStartHalo = 3.5;
+
+/// Conjugate-pair overlay: thinner and lighter than a drawn link.
+const double kConjugateWidth = 1.1;
+const double kConjugateAlpha = 0.3;
+
+/// The board's border while a what-if is on.
+const double kHypothesisBorderWidth = 2.4;
 const double kLinkChipRadius = 4;
 
 /// How much of a link is left off at each end, so the line starts at the
@@ -72,6 +79,7 @@ class BoardPainter extends CustomPainter {
     required this.fontFamily,
     this.noteHighlightShape = NoteHighlightShape.roundedSquare,
     this.linkVisibility = LinkVisibility.always,
+    this.showConjugates = false,
   });
 
   final PlayState state;
@@ -80,6 +88,9 @@ class BoardPainter extends CustomPainter {
   final String fontFamily;
   final NoteHighlightShape noteHighlightShape;
   final LinkVisibility linkVisibility;
+
+  /// Draw every conjugate pair of each highlighted digit.
+  final bool showConjugates;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -168,16 +179,19 @@ class BoardPainter extends CustomPainter {
     }
     canvas.restore();
 
-    final half = kOuterLineWidth / 2;
+    // During a what-if the border takes the hypothesis color.
+    final onWhatIf = state.hypothesis != null;
+    final outerWidth = onWhatIf ? kHypothesisBorderWidth : kOuterLineWidth;
+    final half = outerWidth / 2;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(half, half, w - kOuterLineWidth, h - kOuterLineWidth),
+        Rect.fromLTWH(half, half, w - outerWidth, h - outerWidth),
         radius,
       ),
       Paint()
-        ..color = colors.lineThick
+        ..color = onWhatIf ? colors.hypothesis : colors.lineThick
         ..style = PaintingStyle.stroke
-        ..strokeWidth = kOuterLineWidth,
+        ..strokeWidth = outerWidth,
     );
 
     if (selected != null) {
@@ -222,6 +236,8 @@ class BoardPainter extends CustomPainter {
             ? DigitStyle.given
             : conflicts[i] != 0
             ? DigitStyle.conflict
+            : state.isHypothesisEntry(i)
+            ? DigitStyle.hypothesisEntry
             : DigitStyle.entry;
         final tp = cache.digit(
           digit: v,
@@ -339,12 +355,13 @@ class BoardPainter extends CustomPainter {
   /// [linkEnd] (2 strong, 1 weak, 0 none per mark) for the digit pass.
   void _paintLinks(Canvas canvas, Size size, Uint8List linkEnd) {
     final start = state.linkStart;
-    if (state.links.isEmpty && !(state.linkArmed && start != null)) return;
     final stroke = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = kLinkWidth
       ..strokeCap = StrokeCap.round;
     final fill = Paint();
+    if (showConjugates) _paintConjugates(canvas, size, stroke);
+    if (state.links.isEmpty && !(state.linkArmed && start != null)) return;
     for (final link in state.links) {
       if (!linkShown(state, link, linkVisibility)) continue;
       final color = link.strong ? colors.linkStrong : colors.linkWeak;
@@ -387,6 +404,27 @@ class BoardPainter extends CustomPainter {
     }
   }
 
+  /// Thin lines between the two cells of every conjugate pair of each
+  /// highlighted digit: where strong links are, before any is drawn.
+  void _paintConjugates(Canvas canvas, Size size, Paint stroke) {
+    stroke
+      ..color = colors.linkStrong.withValues(alpha: kConjugateAlpha)
+      ..strokeWidth = kConjugateWidth;
+    for (final digit in state.highlightOrder) {
+      for (final (a, b) in conjugatePairs(state.notes, digit)) {
+        final pair = NoteLink(
+          cellA: a,
+          digitA: digit,
+          cellB: b,
+          digitB: digit,
+          strong: true,
+        );
+        canvas.drawPath(_trimmed(linkPath(pair, size)), stroke);
+      }
+    }
+    stroke.strokeWidth = kLinkWidth;
+  }
+
   static Path _trimmed(Path path) {
     final out = Path();
     for (final metric in path.computeMetrics()) {
@@ -418,6 +456,7 @@ class BoardPainter extends CustomPainter {
         oldDelegate.colors != colors ||
         oldDelegate.fontFamily != fontFamily ||
         oldDelegate.noteHighlightShape != noteHighlightShape ||
-        oldDelegate.linkVisibility != linkVisibility;
+        oldDelegate.linkVisibility != linkVisibility ||
+        oldDelegate.showConjugates != showConjugates;
   }
 }

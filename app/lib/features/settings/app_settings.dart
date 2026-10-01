@@ -72,6 +72,9 @@ class AppSettings {
     this.inputMode = InputMode.cellFirst,
     this.longPressMs = defaultLongPressMs,
     this.linkVisibility = LinkVisibility.always,
+    this.conjugatePairs = false,
+    this.showTimer = true,
+    this.autoHighlight = true,
   });
 
   static const int defaultLongPressMs = 400;
@@ -92,6 +95,16 @@ class AppSettings {
 
   final LinkVisibility linkVisibility;
 
+  /// Draw every conjugate pair of a highlighted digit as a thin line.
+  final bool conjugatePairs;
+
+  /// Show the clock on the play screen (it keeps running either way).
+  final bool showTimer;
+
+  /// Highlight the digit of a tapped cell or key. Long-press highlights
+  /// work regardless.
+  final bool autoHighlight;
+
   Duration get longPress => Duration(milliseconds: longPressMs);
 
   AppSettings copyWith({
@@ -102,6 +115,9 @@ class AppSettings {
     InputMode? inputMode,
     int? longPressMs,
     LinkVisibility? linkVisibility,
+    bool? conjugatePairs,
+    bool? showTimer,
+    bool? autoHighlight,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -114,6 +130,9 @@ class AppSettings {
         maxLongPressMs,
       ),
       linkVisibility: linkVisibility ?? this.linkVisibility,
+      conjugatePairs: conjugatePairs ?? this.conjugatePairs,
+      showTimer: showTimer ?? this.showTimer,
+      autoHighlight: autoHighlight ?? this.autoHighlight,
     );
   }
 
@@ -126,6 +145,9 @@ class AppSettings {
     'inputMode': inputMode.name,
     'longPressMs': longPressMs,
     'linkVisibility': linkVisibility.name,
+    'conjugatePairs': conjugatePairs,
+    'showTimer': showTimer,
+    'autoHighlight': autoHighlight,
   };
 
   String toJsonString() => jsonEncode(toJson());
@@ -152,6 +174,9 @@ class AppSettings {
       linkVisibility: LinkVisibility.fromName(
         json['linkVisibility'] as String?,
       ),
+      conjugatePairs: json['conjugatePairs'] == true,
+      showTimer: json['showTimer'] != false,
+      autoHighlight: json['autoHighlight'] != false,
     );
   }
 
@@ -176,7 +201,10 @@ class AppSettings {
       other.noteHighlightShape == noteHighlightShape &&
       other.inputMode == inputMode &&
       other.longPressMs == longPressMs &&
-      other.linkVisibility == linkVisibility;
+      other.linkVisibility == linkVisibility &&
+      other.conjugatePairs == conjugatePairs &&
+      other.showTimer == showTimer &&
+      other.autoHighlight == autoHighlight;
 
   @override
   int get hashCode => Object.hash(
@@ -187,5 +215,8 @@ class AppSettings {
     inputMode,
     longPressMs,
     linkVisibility,
+    conjugatePairs,
+    showTimer,
+    autoHighlight,
   );
 }

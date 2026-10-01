@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/widgets/app_sheet.dart';
 import '../help/glossary_screen.dart';
+import '../settings/settings_provider.dart';
 import '../settings/settings_screen.dart';
 import 'model/play_intent.dart';
-import 'model/play_state.dart';
 import 'game_timer.dart';
 import 'play_controller.dart';
 import 'widgets/board_view.dart';
@@ -34,52 +32,6 @@ class _PlayScreenState extends ConsumerState<PlayScreen> {
     });
   }
 
-  /// Which marks and links to drop, one layer or all of them.
-  void _showWipeSheet(BuildContext context, PlayState state) {
-    final controller = ref.read(playControllerProvider.notifier);
-    final cells = state.cellColors.where((c) => c != 0).length;
-    final marks = state.noteColors.where((c) => c != 0).length;
-    void wipe(PlayIntent intent) {
-      HapticFeedback.mediumImpact();
-      controller.dispatch(intent);
-    }
-
-    showAppSheet(
-      context,
-      title: '지우기',
-      items: [
-        AppSheetItem(
-          icon: Icons.polyline_outlined,
-          label: '연결만 지우기',
-          detail: '연결 ${state.links.length}개',
-          enabled: state.links.isNotEmpty,
-          onTap: () => wipe(const ClearLinks()),
-        ),
-        AppSheetItem(
-          icon: Icons.crop_square_rounded,
-          label: '칸 색칠만 지우기',
-          detail: '칸 $cells개',
-          enabled: cells > 0,
-          onTap: () => wipe(const ClearCellPaint()),
-        ),
-        AppSheetItem(
-          icon: Icons.apps_rounded,
-          label: '후보 색칠만 지우기',
-          detail: '후보수 $marks개',
-          enabled: marks > 0,
-          onTap: () => wipe(const ClearNotePaint()),
-        ),
-        AppSheetItem(
-          icon: Icons.layers_clear_outlined,
-          label: '모두 지우기',
-          detail: '연결과 색칠 전부',
-          destructive: true,
-          onTap: () => wipe(const ClearPaint()),
-        ),
-      ],
-    );
-  }
-
   /// Leaving for the home screen: stop the clock and keep the game.
   void _park() {
     ref.read(gameTimerProvider.notifier).pause();
@@ -103,7 +55,9 @@ class _PlayScreenState extends ConsumerState<PlayScreen> {
           showDialog<void>(
             context: context,
             builder: (_) => CompletionDialog(
-              timeLabel: ref.read(gameTimerProvider).label,
+              timeLabel: ref.read(settingsProvider).showTimer
+                  ? ref.read(gameTimerProvider).label
+                  : null,
               onNewGame: () =>
                   ref.read(playControllerProvider.notifier).newGame(),
             ),
@@ -139,65 +93,52 @@ class _PlayScreenState extends ConsumerState<PlayScreen> {
                     constraints: const BoxConstraints(maxWidth: 520),
                     child: Column(
                       children: [
+                        // Six icon buttons share the row with the clock, so they sit
+                        // at the compact density.
                         SizedBox(
                           height: 48,
-                          child: Row(
-                            children: [
-                              IconButton(
-                                tooltip: '홈으로',
-                                icon: const Icon(Icons.arrow_back_rounded),
-                                onPressed: () =>
-                                    Navigator.of(context).maybePop(),
-                              ),
-                              const TimerChip(),
-                              const Spacer(),
-                              // Fills every mark from the rules, also to
-                              // repair marks after a slip.
-                              IconButton(
-                                tooltip: '후보 채움',
-                                icon: const Icon(Icons.edit_note_rounded),
-                                onPressed: locked
-                                    ? null
-                                    : () {
-                                        HapticFeedback.lightImpact();
-                                        ref
-                                            .read(
-                                              playControllerProvider.notifier,
-                                            )
-                                            .dispatch(const FillCandidates());
-                                      },
-                              ),
-                              // One button, four wipes: links, cell paint, mark paint,
-                              // or everything. Undo brings any of them back.
-                              IconButton(
-                                tooltip: '지우기 메뉴',
-                                icon: const Icon(Icons.layers_clear_outlined),
-                                onPressed:
-                                    locked ||
-                                        !(state.hasPaint ||
-                                            state.links.isNotEmpty)
-                                    ? null
-                                    : () => _showWipeSheet(context, state),
-                              ),
-                              IconButton(
-                                tooltip: '설정',
-                                icon: const Icon(Icons.settings_outlined),
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const SettingsScreen(),
-                                  ),
+                          child: IconButtonTheme(
+                            data: IconButtonThemeData(
+                              style: IconButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
                                 ),
                               ),
-                              IconButton(
-                                tooltip: '용어 설명',
-                                icon: const Icon(Icons.help_outline_rounded),
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const GlossaryScreen(),
+                            ),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  tooltip: '홈으로',
+                                  icon: const Icon(Icons.arrow_back_rounded),
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
+                                ),
+                                if (ref.watch(
+                                  settingsProvider.select((s) => s.showTimer),
+                                ))
+                                  const TimerChip(),
+                                const Spacer(),
+                                IconButton(
+                                  tooltip: '설정',
+                                  icon: const Icon(Icons.settings_outlined),
+                                  onPressed: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const SettingsScreen(),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                                IconButton(
+                                  tooltip: '용어 설명',
+                                  icon: const Icon(Icons.help_outline_rounded),
+                                  onPressed: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const GlossaryScreen(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: 8),

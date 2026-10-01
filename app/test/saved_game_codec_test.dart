@@ -60,6 +60,19 @@ void main() {
     expect(r.undoStack, isEmpty, reason: 'history is not kept');
   });
 
+  test('a what-if in progress survives a round trip', () {
+    var s = played();
+    s = reduce(s, const StartHypothesis());
+    s = reduce(s, const SelectCell(3));
+    s = reduce(s, const EnterDigit(6));
+    final back = SavedGameCodec.decodeString(SavedGameCodec.encodeString(s, 1));
+    expect(back!.state.hypothesis, isNotNull);
+    expect(back.state.hypothesisEntries, 1);
+    final reverted = reduce(back.state, const RevertHypothesis());
+    expect(reverted.values[3], 0);
+    expect(reverted.values[2], 4, reason: 'the checkpoint keeps earlier work');
+  });
+
   test('broken or foreign data yields nothing', () {
     expect(SavedGameCodec.decodeString(null), isNull);
     expect(SavedGameCodec.decodeString(''), isNull);

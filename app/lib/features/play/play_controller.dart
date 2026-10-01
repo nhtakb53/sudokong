@@ -56,10 +56,12 @@ class PlayController extends AsyncNotifier<PlayState> {
   void dispatch(PlayIntent intent) {
     final current = state.value;
     if (current == null) return;
+    final settings = ref.read(settingsProvider);
     final next = reduce(
       current,
       intent,
-      inputMode: ref.read(settingsProvider).inputMode,
+      inputMode: settings.inputMode,
+      autoHighlight: settings.autoHighlight,
     );
     if (identical(next, current)) return;
     state = AsyncData(next);

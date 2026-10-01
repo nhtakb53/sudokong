@@ -154,6 +154,22 @@ final class RemoveLink extends PlayIntent {
   final int index;
 }
 
+/// Begin a what-if: remember the board so everything placed from now on
+/// can be kept or dropped at once.
+final class StartHypothesis extends PlayIntent {
+  const StartHypothesis();
+}
+
+/// Keep everything placed during the what-if and end it.
+final class CommitHypothesis extends PlayIntent {
+  const CommitHypothesis();
+}
+
+/// Put the board back as it was when the what-if began (undoable).
+final class RevertHypothesis extends PlayIntent {
+  const RevertHypothesis();
+}
+
 /// Restore the board as it was before the last change.
 final class Undo extends PlayIntent {
   const Undo();

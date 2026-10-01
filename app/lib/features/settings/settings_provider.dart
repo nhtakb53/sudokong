@@ -47,6 +47,14 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setLinkVisibility(LinkVisibility visibility) =>
       _update(state.copyWith(linkVisibility: visibility));
 
+  Future<void> setConjugatePairs(bool on) =>
+      _update(state.copyWith(conjugatePairs: on));
+
+  Future<void> setShowTimer(bool on) => _update(state.copyWith(showTimer: on));
+
+  Future<void> setAutoHighlight(bool on) =>
+      _update(state.copyWith(autoHighlight: on));
+
   Future<void> _update(AppSettings next) async {
     if (next == state) return;
     state = next;

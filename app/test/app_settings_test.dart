@@ -24,6 +24,15 @@ void main() {
       AppSettings.defaults.noteHighlightShape,
       NoteHighlightShape.roundedSquare,
     );
+    const quiet = AppSettings(
+      conjugatePairs: true,
+      showTimer: false,
+      autoHighlight: false,
+    );
+    expect(AppSettings.fromJsonString(quiet.toJsonString()), quiet);
+    expect(AppSettings.defaults.showTimer, isTrue);
+    expect(AppSettings.defaults.autoHighlight, isTrue);
+    expect(AppSettings.defaults.conjugatePairs, isFalse);
     const links = AppSettings(linkVisibility: LinkVisibility.highlighted);
     expect(AppSettings.fromJsonString(links.toJsonString()), links);
     expect(AppSettings.defaults.linkVisibility, LinkVisibility.always);

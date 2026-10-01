@@ -17,6 +17,7 @@ PlayState reduce(
   PlayState state,
   PlayIntent intent, {
   InputMode inputMode = InputMode.cellFirst,
+  bool autoHighlight = true,
 }) {
   // A finished board only accepts selection and highlighting.
   if (state.completed &&
@@ -46,7 +47,7 @@ PlayState reduce(
       return state.copyWith(
         selected: index,
         activeDigit: digit,
-        highlightSlots: _follow(state, digit),
+        highlightSlots: _follow(state, digit, autoHighlight),
       );
 
     case EnterDigit(:final digit):
@@ -56,7 +57,7 @@ PlayState reduce(
         final armed = state.activeDigit == digit ? 0 : digit;
         return state.copyWith(
           activeDigit: armed,
-          highlightSlots: _follow(state, armed),
+          highlightSlots: _follow(state, armed, autoHighlight),
           paintArmed: false,
           linkArmed: false,
           clearLinkStart: true,
@@ -66,11 +67,11 @@ PlayState reduce(
       if (selected == null || state.isGiven(selected)) {
         // Nothing to write: the key only picks the highlighted digit, and
         // a tap always means one digit.
-        return _pick(state, digit);
+        return _pick(state, digit, autoHighlight);
       }
       return _write(state, selected, digit).copyWith(
         activeDigit: digit,
-        highlightSlots: _follow(state, digit),
+        highlightSlots: _follow(state, digit, autoHighlight),
         paintArmed: false,
         linkArmed: false,
         clearLinkStart: true,
@@ -80,11 +81,11 @@ PlayState reduce(
       if (digit < 1 || digit > 9) return state;
       final selected = state.selected;
       if (selected == null || state.values[selected] != 0) {
-        return _pick(state, digit);
+        return _pick(state, digit, autoHighlight);
       }
       return _toggleNote(state, selected, digit).copyWith(
         activeDigit: digit,
-        highlightSlots: _follow(state, digit),
+        highlightSlots: _follow(state, digit, autoHighlight),
         paintArmed: false,
         linkArmed: false,
         clearLinkStart: true,
@@ -153,11 +154,10 @@ PlayState reduce(
           selected != null &&
           !state.isGiven(selected)) {
         // The escape hatch from note mode: a held key always writes a value.
-        return _write(
-          state,
-          selected,
-          digit,
-        ).copyWith(activeDigit: digit, highlightSlots: _follow(state, digit));
+        return _write(state, selected, digit).copyWith(
+          activeDigit: digit,
+          highlightSlots: _follow(state, digit, autoHighlight),
+        );
       }
       return reduce(state, ToggleHighlight(digit), inputMode: inputMode);
 
@@ -249,6 +249,27 @@ PlayState reduce(
     case ClearNotePaint():
       if (!state.noteColors.any((c) => c != 0)) return state;
       return state.remember().copyWith(noteColors: kNoNoteColors);
+
+    case StartHypothesis():
+      if (state.hypothesis != null) return state;
+      return state.copyWith(hypothesis: Hypothesis(state.snapshot()));
+
+    case CommitHypothesis():
+      if (state.hypothesis == null) return state;
+      return state.copyWith(clearHypothesis: true);
+
+    case RevertHypothesis():
+      final h = state.hypothesis;
+      if (h == null) return state;
+      return state.remember().copyWith(
+        values: h.board.values,
+        notes: h.board.notes,
+        cellColors: h.board.cellColors,
+        noteColors: h.board.noteColors,
+        links: h.board.links,
+        clearLinkStart: true,
+        clearHypothesis: true,
+      );
 
     case ToggleLinkTool():
       return state.copyWith(
@@ -344,6 +365,7 @@ PlayState reduce(
         links: next.links,
         clearLinkStart: true,
         completed: isSolved(next.values),
+        clearHypothesis: isSolved(next.values),
         undoStack: List.unmodifiable([...state.undoStack, state.snapshot()]),
         redoStack: List.unmodifiable(
           state.redoStack.sublist(0, state.redoStack.length - 1),
@@ -444,7 +466,7 @@ Uint8List _prunedNoteColors(Uint16List notes, Uint8List colors) {
 
 /// Highlight after a tap on key [digit] that has nothing to write: always
 /// that one digit, unpinned, which also ends a long-press set.
-PlayState _pick(PlayState state, int digit) {
+PlayState _pick(PlayState state, int digit, bool autoHighlight) {
   if (state.activeDigit == digit &&
       !state.highlightPinned &&
       !state.paintArmed) {
@@ -452,7 +474,7 @@ PlayState _pick(PlayState state, int digit) {
   }
   return state.copyWith(
     activeDigit: digit,
-    highlightSlots: _single(digit),
+    highlightSlots: autoHighlight ? _single(digit) : kNoHighlights,
     highlightPinned: false,
     paintArmed: false,
     linkArmed: false,
@@ -462,8 +484,12 @@ PlayState _pick(PlayState state, int digit) {
 
 /// Highlight after the player touches [digit] (0 for an empty cell): a
 /// pinned (long-press) set stays, otherwise the highlight follows.
-List<int> _follow(PlayState state, int digit) =>
-    state.highlightPinned ? state.highlightSlots : _single(digit);
+List<int> _follow(PlayState state, int digit, bool autoHighlight) =>
+    state.highlightPinned
+    ? state.highlightSlots
+    : autoHighlight
+    ? _single(digit)
+    : kNoHighlights;
 
 /// Only [digit] lit, in the first (blue) slot.
 List<int> _single(int digit) {
@@ -483,7 +509,11 @@ PlayState _write(PlayState state, int index, int digit) {
   values[index] = cleared ? 0 : digit;
   if (cleared) return state.copyWith(values: values);
   if (isSolved(values)) {
-    return state.copyWith(values: values, completed: true);
+    return state.copyWith(
+      values: values,
+      completed: true,
+      clearHypothesis: true,
+    );
   }
   final notes = Uint16List.fromList(state.notes);
   notes[index] = 0;

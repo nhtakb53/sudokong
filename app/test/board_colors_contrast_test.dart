@@ -92,6 +92,12 @@ void main() {
         }
       });
 
+      test('what-if digits read on every fill', () {
+        for (final bg in [c.cell, c.peer, c.sameDigit, c.selected]) {
+          expect(contrast(c.hypothesis, bg), greaterThanOrEqualTo(3.0));
+        }
+      });
+
       test('digits read on the link chips', () {
         expect(
           contrast(c.linkStrongText, c.linkStrong),

@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Shown once when the board is solved.
 class CompletionDialog extends StatelessWidget {
-  const CompletionDialog({
-    super.key,
-    required this.timeLabel,
-    required this.onNewGame,
-  });
+  const CompletionDialog({super.key, this.timeLabel, required this.onNewGame});
 
-  final String timeLabel;
+  /// Elapsed time, or null when the clock is hidden.
+  final String? timeLabel;
   final VoidCallback onNewGame;
 
   @override
@@ -17,21 +14,23 @@ class CompletionDialog extends StatelessWidget {
     return AlertDialog(
       icon: Icon(Icons.check_circle_rounded, color: scheme.primary, size: 44),
       title: const Text('다 풀었어요'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('걸린 시간', style: TextStyle(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 4),
-          Text(
-            timeLabel,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w600,
-              fontFeatures: [FontFeature.tabularFigures()],
+      content: timeLabel == null
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('걸린 시간', style: TextStyle(color: scheme.onSurfaceVariant)),
+                const SizedBox(height: 4),
+                Text(
+                  timeLabel!,
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
