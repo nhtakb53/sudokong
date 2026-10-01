@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sudoku_engine/sudoku_engine.dart';
 
 /// Board contents at one point in time, kept for undo: digits, pencil
-/// marks and the player's paint.
+/// marks, the player's paint and links.
 @immutable
 class BoardSnapshot {
   const BoardSnapshot(
@@ -12,12 +12,58 @@ class BoardSnapshot {
     this.notes,
     this.cellColors,
     this.noteColors,
+    this.links,
   );
   final Uint8List values;
   final Uint16List notes;
   final Uint8List cellColors;
   final Uint8List noteColors;
+  final List<NoteLink> links;
 }
+
+/// A link the player drew between two pencil marks. A strong link joins
+/// the two marks of a bivalue cell or a conjugate pair (the only two cells
+/// of a unit holding that digit); a weak link joins marks that merely see
+/// each other.
+@immutable
+class NoteLink {
+  const NoteLink({
+    required this.cellA,
+    required this.digitA,
+    required this.cellB,
+    required this.digitB,
+    required this.strong,
+    this.manual = false,
+  });
+
+  final int cellA;
+  final int digitA;
+  final int cellB;
+  final int digitB;
+  final bool strong;
+
+  /// True once the player set the type by hand; recomputation leaves it.
+  final bool manual;
+
+  bool touches(int cell, int digit) =>
+      (cellA == cell && digitA == digit) || (cellB == cell && digitB == digit);
+
+  bool joins(int ca, int da, int cb, int db) =>
+      (cellA == ca && digitA == da && cellB == cb && digitB == db) ||
+      (cellA == cb && digitA == db && cellB == ca && digitB == da);
+
+  NoteLink copyWith({bool? strong, bool? manual}) => NoteLink(
+    cellA: cellA,
+    digitA: digitA,
+    cellB: cellB,
+    digitB: digitB,
+    strong: strong ?? this.strong,
+    manual: manual ?? this.manual,
+  );
+}
+
+/// One end of a link being drawn.
+typedef LinkEnd = ({int cell, int digit});
 
 /// What a tap paints while paint mode is on.
 enum PaintTarget { cell, note }
@@ -62,6 +108,9 @@ class PlayState {
     this.paintArmed = false,
     this.paintTarget = PaintTarget.cell,
     this.paintColor = 1,
+    this.links = const [],
+    this.linkStart,
+    this.linkArmed = false,
   }) : cellColors = cellColors ?? kNoCellColors,
        noteColors = noteColors ?? kNoNoteColors;
 
@@ -94,6 +143,26 @@ class PlayState {
 
   bool get hasPaint =>
       cellColors.any((c) => c != 0) || noteColors.any((c) => c != 0);
+
+  /// True while there is something to come back to: an unfinished board
+  /// that differs from the puzzle as given, or carries marks, paint or
+  /// links.
+  bool get hasProgress {
+    if (completed) return false;
+    for (var i = 0; i < 81; i++) {
+      if (values[i] != givens[i] || notes[i] != 0) return true;
+    }
+    return hasPaint || links.isNotEmpty;
+  }
+
+  /// Links drawn between pencil marks, in drawing order.
+  final List<NoteLink> links;
+
+  /// The mark the next link starts from while the link tool is armed.
+  final LinkEnd? linkStart;
+
+  /// True while the link tool is the armed tool, so mark taps draw links.
+  final bool linkArmed;
 
   /// Given digits, 0 where the cell was empty at the start.
   final Uint8List givens;
@@ -183,6 +252,10 @@ class PlayState {
     bool? paintArmed,
     PaintTarget? paintTarget,
     int? paintColor,
+    List<NoteLink>? links,
+    LinkEnd? linkStart,
+    bool clearLinkStart = false,
+    bool? linkArmed,
   }) {
     return PlayState(
       givens: givens,
@@ -204,12 +277,15 @@ class PlayState {
       paintArmed: paintArmed ?? this.paintArmed,
       paintTarget: paintTarget ?? this.paintTarget,
       paintColor: paintColor ?? this.paintColor,
+      links: links ?? this.links,
+      linkStart: clearLinkStart ? null : (linkStart ?? this.linkStart),
+      linkArmed: linkArmed ?? this.linkArmed,
     );
   }
 
   /// The board as it is now, for undo.
   BoardSnapshot snapshot() =>
-      BoardSnapshot(values, notes, cellColors, noteColors);
+      BoardSnapshot(values, notes, cellColors, noteColors, links);
 
   /// Copy with the current board pushed onto the undo stack. A new change
   /// invalidates whatever was undone before it.

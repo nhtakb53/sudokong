@@ -113,6 +113,23 @@ class SettingsScreen extends ConsumerWidget {
                         onChanged: notifier.setNoteHighlightShape,
                       ),
                     ),
+                    SettingsRow(
+                      title: '연결 표시',
+                      trailing: _Choice<LinkVisibility>(
+                        segments: const [
+                          ButtonSegment(
+                            value: LinkVisibility.always,
+                            label: Text('항상'),
+                          ),
+                          ButtonSegment(
+                            value: LinkVisibility.highlighted,
+                            label: Text('강조 시'),
+                          ),
+                        ],
+                        selected: settings.linkVisibility,
+                        onChanged: notifier.setLinkVisibility,
+                      ),
+                    ),
                   ],
                 ),
               ],

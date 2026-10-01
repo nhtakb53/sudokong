@@ -24,6 +24,9 @@ void main() {
       AppSettings.defaults.noteHighlightShape,
       NoteHighlightShape.roundedSquare,
     );
+    const links = AppSettings(linkVisibility: LinkVisibility.highlighted);
+    expect(AppSettings.fromJsonString(links.toJsonString()), links);
+    expect(AppSettings.defaults.linkVisibility, LinkVisibility.always);
   });
 
   test('ignores unknown keys and bad values', () {

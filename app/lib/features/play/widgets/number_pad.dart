@@ -106,38 +106,43 @@ class NumberPad extends ConsumerWidget {
     // Two boxes: the palette above, the digit keys below where the thumb
     // rests. Note mode only recolors the digit box (the board's peer
     // tint), so the mode reads as an area change rather than a change to
-    // each key.
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(18),
+    // each key. A tap on either box that no key claims clears the
+    // selection, like a tap on any other empty space.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => controller.dispatch(const ClearSelection()),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: _PaintStrip(picked: paintColor),
+            ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: _PaintStrip(picked: paintColor),
+          const SizedBox(height: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            decoration: BoxDecoration(
+              color: noteMode
+                  ? context.boardColors.peer
+                  : scheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: KeyRows(layout: layout, builder: key),
           ),
-        ),
-        const SizedBox(height: 8),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          decoration: BoxDecoration(
-            color: noteMode
-                ? context.boardColors.peer
-                : scheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: KeyRows(layout: layout, builder: key),
-        ),
-        // A single row keeps its box compact but stays on the line of the
-        // two-row layout's upper row, so the board and toolbar never move;
-        // the saved height becomes bottom margin.
-        if (layout == NumberPadLayout.oneRow)
-          SizedBox(height: keyHeight + KeyRows.gap),
-      ],
+          // A single row keeps its box compact but stays on the line of the
+          // two-row layout's upper row, so the board and toolbar never move;
+          // the saved height becomes bottom margin.
+          if (layout == NumberPadLayout.oneRow)
+            SizedBox(height: keyHeight + KeyRows.gap),
+        ],
+      ),
     );
   }
 }
@@ -261,9 +266,9 @@ class _DigitKey extends StatelessWidget {
   }
 }
 
-/// Nine palette colors and an eraser above the digit keys. Tapping one arms
-/// it, so the next board taps paint; a digit key takes over again. Holding
-/// the eraser clears every painted cell and mark.
+/// Nine palette colors above the digit keys. Tapping one arms it, so the
+/// next board taps paint; a digit key takes over again. The eraser is on
+/// the toolbar.
 class _PaintStrip extends ConsumerWidget {
   const _PaintStrip({required this.picked});
 
@@ -276,7 +281,6 @@ class _PaintStrip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(playControllerProvider.notifier);
-    final scheme = Theme.of(context).colorScheme;
     final board = context.boardColors;
     final slots = board.digitSlots;
     void pick(int c) {
@@ -287,6 +291,7 @@ class _PaintStrip extends ConsumerWidget {
     return Row(
       children: [
         for (var c = 1; c <= kPaintColors; c++) ...[
+          if (c > 1) const SizedBox(width: gap),
           Expanded(
             child: _Swatch(
               key: ValueKey('paint-$c'),
@@ -298,33 +303,7 @@ class _PaintStrip extends ConsumerWidget {
               onTap: () => pick(c),
             ),
           ),
-          const SizedBox(width: gap),
         ],
-        Expanded(
-          child: Semantics(
-            hint: '길게 누르면 색칠을 모두 지웁니다',
-            child: GestureDetector(
-              onLongPress: () {
-                HapticFeedback.mediumImpact();
-                controller.dispatch(const ClearPaint());
-              },
-              child: _Swatch(
-                key: const ValueKey('paint-eraser'),
-                label: '지우개',
-                picked: picked == 0,
-                fill: Colors.transparent,
-                border: scheme.outlineVariant,
-                outline: board.entry,
-                icon: Icon(
-                  Icons.format_color_reset_outlined,
-                  size: 20,
-                  color: scheme.onSurfaceVariant,
-                ),
-                onTap: () => pick(0),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -339,8 +318,6 @@ class _Swatch extends StatelessWidget {
     required this.outline,
     required this.onTap,
     this.mark,
-    this.border,
-    this.icon,
   });
 
   final String label;
@@ -349,8 +326,6 @@ class _Swatch extends StatelessWidget {
   final Color outline;
   final VoidCallback onTap;
   final Color? mark;
-  final Color? border;
-  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -368,21 +343,19 @@ class _Swatch extends StatelessWidget {
             color: fill,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: picked ? outline : (border ?? Colors.transparent),
+              color: picked ? outline : Colors.transparent,
               width: picked ? 2.5 : 1,
             ),
           ),
           child: Center(
-            child:
-                icon ??
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: mark,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: mark,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
           ),
         ),
       ),

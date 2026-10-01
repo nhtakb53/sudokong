@@ -8,8 +8,9 @@ import '../model/play_state.dart';
 import '../play_controller.dart';
 
 /// Actions between the board and the keypad, evenly spread across the
-/// board width: undo, redo, erase, note mode, the paint target, fill
-/// candidates, and the two candidate-count filters.
+/// board width: undo, redo, eraser, note mode, the paint target, the link
+/// tool and the two candidate-count filters. Filling marks lives in the
+/// top row.
 class PlayToolbar extends ConsumerWidget {
   const PlayToolbar({super.key, required this.state});
 
@@ -20,11 +21,6 @@ class PlayToolbar extends ConsumerWidget {
     final controller = ref.read(playControllerProvider.notifier);
     final board = context.boardColors;
     final scheme = Theme.of(context).colorScheme;
-    final selected = state.selected;
-    final canErase =
-        selected != null &&
-        !state.isGiven(selected) &&
-        (state.values[selected] != 0 || state.notes[selected] != 0);
     // Boxed like the keypad, so the two controls read as one console.
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -46,20 +42,30 @@ class PlayToolbar extends ConsumerWidget {
             ),
             _ToolButton(
               icon: Icons.redo_rounded,
-              label: '다시 실행',
+              label: '다시실행',
               enabled: state.canRedo,
               onTap: () {
                 HapticFeedback.lightImpact();
                 controller.dispatch(const Redo());
               },
             ),
+
+            // Erases the selected cell a layer at a time, or arms so the
+            // next board taps erase; a long press clears all paint and
+            // links.
             _ToolButton(
-              icon: Icons.backspace_outlined,
-              label: '지우기',
-              enabled: canErase,
+              icon: state.paintArmed && state.paintColor == 0
+                  ? Icons.backspace_rounded
+                  : Icons.backspace_outlined,
+              label: '지우개',
+              active: state.paintArmed && state.paintColor == 0,
               onTap: () {
-                HapticFeedback.lightImpact();
-                controller.dispatch(const Erase());
+                HapticFeedback.selectionClick();
+                controller.dispatch(const EraseTool());
+              },
+              onLongPress: () {
+                HapticFeedback.mediumImpact();
+                controller.dispatch(const ClearPaint());
               },
             ),
             _ToolButton(
@@ -91,13 +97,17 @@ class PlayToolbar extends ConsumerWidget {
               },
             ),
             _ToolButton(
-              icon: Icons.edit_note_rounded,
-              label: '후보 채움',
+              icon: state.linkArmed
+                  ? Icons.polyline_rounded
+                  : Icons.polyline_outlined,
+              label: '연결',
+              active: state.linkArmed,
               onTap: () {
-                HapticFeedback.lightImpact();
-                controller.dispatch(const FillCandidates());
+                HapticFeedback.selectionClick();
+                controller.dispatch(const ToggleLinkTool());
               },
             ),
+
             // The active tile takes the board's tile color, so the button
             // and the cells it marks share one look.
             _ToolButton(
@@ -138,6 +148,7 @@ class _ToolButton extends StatefulWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.onLongPress,
     this.active = false,
     this.enabled = true,
     this.activeTile,
@@ -147,6 +158,7 @@ class _ToolButton extends StatefulWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
   final bool active;
   final bool enabled;
 
@@ -187,6 +199,7 @@ class _ToolButtonState extends State<_ToolButton> {
         label: widget.label,
         child: InkWell(
           onTap: widget.enabled ? widget.onTap : null,
+          onLongPress: widget.enabled ? widget.onLongPress : null,
           onHighlightChanged: (v) => setState(() => _pressed = v),
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
           splashFactory: NoSplash.splashFactory,

@@ -51,7 +51,8 @@ class GameTimer extends Notifier<GameTimerState> {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!state.paused) state = state.copyWith(seconds: state.seconds + 1);
     });
-    return const GameTimerState();
+    // Paused until the play screen is on show.
+    return const GameTimerState(paused: true);
   }
 
   void pause() {
@@ -68,4 +69,8 @@ class GameTimer extends Notifier<GameTimerState> {
   }
 
   void reset() => state = const GameTimerState();
+
+  /// Picks up a saved clock; it runs once the play screen resumes it.
+  void restore(int seconds) =>
+      state = GameTimerState(seconds: seconds, paused: true);
 }

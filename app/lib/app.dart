@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
+import 'features/home/home_screen.dart';
 import 'features/play/game_timer.dart';
-import 'features/play/play_screen.dart';
+import 'features/play/play_controller.dart';
 import 'features/settings/settings_provider.dart';
 
 class SudokongApp extends ConsumerStatefulWidget {
@@ -19,11 +20,14 @@ class _SudokongAppState extends ConsumerState<SudokongApp> {
   @override
   void initState() {
     super.initState();
-    // Leaving the app pauses the clock; the player resumes it by hand.
-    _lifecycle = AppLifecycleListener(
-      onHide: () => ref.read(gameTimerProvider.notifier).pause(),
-      onPause: () => ref.read(gameTimerProvider.notifier).pause(),
-    );
+    // Leaving the app pauses the clock and saves the game; the player
+    // resumes the clock by hand.
+    _lifecycle = AppLifecycleListener(onHide: _park, onPause: _park);
+  }
+
+  void _park() {
+    ref.read(gameTimerProvider.notifier).pause();
+    ref.read(playControllerProvider.notifier).saveNow();
   }
 
   @override
@@ -41,7 +45,7 @@ class _SudokongAppState extends ConsumerState<SudokongApp> {
       theme: AppTheme.light(settings.colorTheme),
       darkTheme: AppTheme.dark(settings.colorTheme),
       themeMode: settings.themeMode,
-      home: const PlayScreen(),
+      home: const HomeScreen(),
     );
   }
 }

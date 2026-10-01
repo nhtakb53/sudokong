@@ -25,7 +25,8 @@ PlayState reduce(
       intent is! ToggleNoteMode &&
       intent is! ToggleNoteCountFilter &&
       intent is! ToggleHighlight &&
-      intent is! HoldDigit) {
+      intent is! HoldDigit &&
+      intent is! ToggleLinkTool) {
     return state;
   }
   switch (intent) {
@@ -57,6 +58,8 @@ PlayState reduce(
           activeDigit: armed,
           highlightSlots: _follow(state, armed),
           paintArmed: false,
+          linkArmed: false,
+          clearLinkStart: true,
         );
       }
       final selected = state.selected;
@@ -69,6 +72,8 @@ PlayState reduce(
         activeDigit: digit,
         highlightSlots: _follow(state, digit),
         paintArmed: false,
+        linkArmed: false,
+        clearLinkStart: true,
       );
 
     case EnterNote(:final digit):
@@ -81,6 +86,8 @@ PlayState reduce(
         activeDigit: digit,
         highlightSlots: _follow(state, digit),
         paintArmed: false,
+        linkArmed: false,
+        clearLinkStart: true,
       );
 
     case ToggleNoteMode():
@@ -165,19 +172,24 @@ PlayState reduce(
 
     case Erase():
       final selected = state.selected;
-      if (selected == null || state.isGiven(selected)) return state;
-      if (state.values[selected] != 0) {
-        final values = Uint8List.fromList(state.values);
-        values[selected] = 0;
-        return state.remember().copyWith(values: values);
+      if (selected == null) return state;
+      return _eraseCell(state, selected);
+
+    case EraseTool():
+      final selected = state.selected;
+      if (inputMode == InputMode.cellFirst &&
+          selected != null &&
+          !state.isGiven(selected) &&
+          (state.values[selected] != 0 ||
+              state.notes[selected] != 0 ||
+              state.cellColors[selected] != 0)) {
+        // A direct erase is a one-off: no tool stays armed afterwards.
+        return _eraseCell(
+          state,
+          selected,
+        ).copyWith(paintArmed: false, linkArmed: false, clearLinkStart: true);
       }
-      if (state.notes[selected] == 0) return state;
-      final notes = Uint16List.fromList(state.notes);
-      notes[selected] = 0;
-      return state.remember().copyWith(
-        notes: notes,
-        noteColors: _prunedNoteColors(notes, state.noteColors),
-      );
+      return reduce(state, const PickPaint(0), inputMode: inputMode);
 
     case SetPaintTarget(:final target):
       if (state.paintTarget == target) return state;
@@ -188,10 +200,16 @@ PlayState reduce(
       if (state.paintArmed && color == state.paintColor) {
         return state.copyWith(paintArmed: false);
       }
-      return state.copyWith(paintColor: color, paintArmed: true);
+      return state.copyWith(
+        paintColor: color,
+        paintArmed: true,
+        linkArmed: false,
+        clearLinkStart: true,
+      );
 
     case PaintCell(:final index):
       if (index < 0 || index > 80) return state;
+      if (state.paintColor == 0) return _eraseCell(state, index);
       final next = _toggledPaint(state.cellColors[index], state.paintColor);
       if (next == state.cellColors[index]) return state;
       final colors = Uint8List.fromList(state.cellColors);
@@ -212,11 +230,92 @@ PlayState reduce(
       return state.remember().copyWith(noteColors: colors);
 
     case ClearPaint():
-      if (!state.hasPaint) return state;
+      if (!state.hasPaint && state.links.isEmpty) return state;
       return state.remember().copyWith(
         cellColors: kNoCellColors,
         noteColors: kNoNoteColors,
+        links: const [],
+        clearLinkStart: true,
       );
+
+    case ClearLinks():
+      if (state.links.isEmpty) return state;
+      return state.remember().copyWith(links: const [], clearLinkStart: true);
+
+    case ClearCellPaint():
+      if (!state.cellColors.any((c) => c != 0)) return state;
+      return state.remember().copyWith(cellColors: kNoCellColors);
+
+    case ClearNotePaint():
+      if (!state.noteColors.any((c) => c != 0)) return state;
+      return state.remember().copyWith(noteColors: kNoNoteColors);
+
+    case ToggleLinkTool():
+      return state.copyWith(
+        linkArmed: !state.linkArmed,
+        paintArmed: false,
+        clearLinkStart: true,
+      );
+
+    case TapForLink(:final index, :final digit):
+      if (index < 0 || index > 80 || digit < 1 || digit > 9) return state;
+      if (state.values[index] != 0 ||
+          state.notes[index] & (1 << (digit - 1)) == 0) {
+        return state; // only an existing mark can be an end
+      }
+      final start = state.linkStart;
+      if (start == null) {
+        return state.copyWith(linkStart: (cell: index, digit: digit));
+      }
+      if (start.cell == index && start.digit == digit) {
+        return state.copyWith(clearLinkStart: true); // chain ends here
+      }
+      final existing = state.links.indexWhere(
+        (l) => l.joins(start.cell, start.digit, index, digit),
+      );
+      if (existing >= 0) {
+        final links = [...state.links]..removeAt(existing);
+        return state.remember().copyWith(
+          links: List.unmodifiable(links),
+          clearLinkStart: true,
+        );
+      }
+      final strong = linkStrength(
+        state.notes,
+        start.cell,
+        start.digit,
+        index,
+        digit,
+      );
+      if (strong == null) return state; // no inference between the two
+      final links = [
+        ...state.links,
+        NoteLink(
+          cellA: start.cell,
+          digitA: start.digit,
+          cellB: index,
+          digitB: digit,
+          strong: strong,
+        ),
+      ];
+      return state.remember().copyWith(
+        links: List.unmodifiable(links),
+        linkStart: (cell: index, digit: digit),
+      );
+
+    case ToggleLinkType(:final index):
+      if (index < 0 || index >= state.links.length) return state;
+      final links = [...state.links];
+      links[index] = links[index].copyWith(
+        strong: !links[index].strong,
+        manual: true,
+      );
+      return state.remember().copyWith(links: List.unmodifiable(links));
+
+    case RemoveLink(:final index):
+      if (index < 0 || index >= state.links.length) return state;
+      final links = [...state.links]..removeAt(index);
+      return state.remember().copyWith(links: List.unmodifiable(links));
 
     case Undo():
       if (!state.canUndo) return state;
@@ -226,6 +325,8 @@ PlayState reduce(
         notes: last.notes,
         cellColors: last.cellColors,
         noteColors: last.noteColors,
+        links: last.links,
+        clearLinkStart: true,
         undoStack: List.unmodifiable(
           state.undoStack.sublist(0, state.undoStack.length - 1),
         ),
@@ -240,6 +341,8 @@ PlayState reduce(
         notes: next.notes,
         cellColors: next.cellColors,
         noteColors: next.noteColors,
+        links: next.links,
+        clearLinkStart: true,
         completed: isSolved(next.values),
         undoStack: List.unmodifiable([...state.undoStack, state.snapshot()]),
         redoStack: List.unmodifiable(
@@ -250,7 +353,8 @@ PlayState reduce(
     case ClearSelection():
       if (state.selected == null &&
           state.activeDigit == 0 &&
-          state.highlightOrder.isEmpty) {
+          state.highlightOrder.isEmpty &&
+          state.linkStart == null) {
         return state;
       }
       return state.copyWith(
@@ -258,6 +362,7 @@ PlayState reduce(
         activeDigit: 0,
         highlightSlots: kNoHighlights,
         highlightPinned: false,
+        clearLinkStart: true,
       );
 
     case FillCandidates():
@@ -281,8 +386,39 @@ PlayState reduce(
       return state.remember().copyWith(
         notes: notes,
         noteColors: _prunedNoteColors(notes, state.noteColors),
+        links: _prunedLinks(notes, state.links),
+        clearLinkStart: true,
       );
   }
+}
+
+/// Erases what the player put in [index], a layer at a time: the digit
+/// first; then the marks together with their paint and the cell's paint.
+/// A given keeps its digit, so only its paint can go.
+PlayState _eraseCell(PlayState state, int index) {
+  if (!state.isGiven(index) && state.values[index] != 0) {
+    final values = Uint8List.fromList(state.values);
+    values[index] = 0;
+    return state.remember().copyWith(values: values);
+  }
+  final hasMarks = state.notes[index] != 0;
+  final hasPaint =
+      state.cellColors[index] != 0 ||
+      state.noteColors.sublist(index * 9, index * 9 + 9).any((c) => c != 0);
+  if (!hasMarks && !hasPaint) return state;
+  final notes = Uint16List.fromList(state.notes);
+  notes[index] = 0;
+  final cellColors = Uint8List.fromList(state.cellColors);
+  cellColors[index] = 0;
+  final noteColors = Uint8List.fromList(state.noteColors);
+  noteColors.fillRange(index * 9, index * 9 + 9, 0);
+  return state.remember().copyWith(
+    notes: notes,
+    cellColors: cellColors,
+    noteColors: noteColors,
+    links: _prunedLinks(notes, state.links),
+    clearLinkStart: true,
+  );
 }
 
 /// Paint value after tapping a target that holds [current] with [picked]:
@@ -319,6 +455,8 @@ PlayState _pick(PlayState state, int digit) {
     highlightSlots: _single(digit),
     highlightPinned: false,
     paintArmed: false,
+    linkArmed: false,
+    clearLinkStart: true,
   );
 }
 
@@ -358,6 +496,8 @@ PlayState _write(PlayState state, int index, int digit) {
     values: values,
     notes: notes,
     noteColors: _prunedNoteColors(notes, state.noteColors),
+    links: _prunedLinks(notes, state.links),
+    clearLinkStart: true,
   );
 }
 
@@ -370,5 +510,66 @@ PlayState _toggleNote(PlayState state, int index, int digit) {
   return state.copyWith(
     notes: notes,
     noteColors: _prunedNoteColors(notes, state.noteColors),
+    links: _prunedLinks(notes, state.links),
   );
+}
+
+/// Whether a link from mark ([ca], [da]) to mark ([cb], [db]) is strong
+/// (true), weak (false), or no inference at all (null): two marks of one
+/// cell are strong only when the cell is bivalue; the same digit in two
+/// cells is strong only when some shared unit holds it in exactly those
+/// two cells; different digits in different cells never link.
+bool? linkStrength(Uint16List notes, int ca, int da, int cb, int db) {
+  if (ca == cb) {
+    if (da == db) return null;
+    return Tables.instance.popcount[notes[ca]] == 2;
+  }
+  if (da != db) return null;
+  final t = Tables.instance;
+  final bit = 1 << (da - 1);
+  final shared = <int>[
+    if (t.rowOf[ca] == t.rowOf[cb]) t.rowOf[ca],
+    if (t.colOf[ca] == t.colOf[cb]) 9 + t.colOf[ca],
+    if (t.boxOf[ca] == t.boxOf[cb]) 18 + t.boxOf[ca],
+  ];
+  if (shared.isEmpty) return null;
+  for (final u in shared) {
+    var count = 0;
+    for (var k = 0; k < 9; k++) {
+      if (notes[t.units[u * 9 + k]] & bit != 0) count++;
+    }
+    if (count == 2) return true;
+  }
+  return false;
+}
+
+/// [links] with every link that lost an end removed and the type of every
+/// automatic link recomputed for [notes]. Returns [links] itself when
+/// nothing changes.
+List<NoteLink> _prunedLinks(Uint16List notes, List<NoteLink> links) {
+  if (links.isEmpty) return links;
+  var changed = false;
+  final kept = <NoteLink>[];
+  for (final link in links) {
+    final strong = linkStrength(
+      notes,
+      link.cellA,
+      link.digitA,
+      link.cellB,
+      link.digitB,
+    );
+    final hasA = notes[link.cellA] & (1 << (link.digitA - 1)) != 0;
+    final hasB = notes[link.cellB] & (1 << (link.digitB - 1)) != 0;
+    if (!hasA || !hasB || strong == null) {
+      changed = true;
+      continue;
+    }
+    if (!link.manual && strong != link.strong) {
+      changed = true;
+      kept.add(link.copyWith(strong: strong));
+    } else {
+      kept.add(link);
+    }
+  }
+  return changed ? List.unmodifiable(kept) : links;
 }

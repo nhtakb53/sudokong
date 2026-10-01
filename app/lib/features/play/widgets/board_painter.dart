@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:sudoku_engine/sudoku_engine.dart';
 
@@ -6,6 +8,7 @@ import '../../settings/app_settings.dart';
 import '../model/board_analysis.dart';
 import '../model/play_state.dart';
 import 'board_text_cache.dart';
+import 'link_geometry.dart';
 
 /// Width divided by height of the whole board. Slightly below 1 makes each
 /// cell a little taller than wide, which gives digits and notes more room
@@ -37,6 +40,21 @@ const double kSelectionOverflow = 0.5;
 /// group reads as one shape.
 const double kNoteChipRadius = 3;
 
+/// Links between pencil marks: stroke, dash pattern for weak links, the
+/// strong/weak handle, and the chips on the two ends.
+const double kLinkWidth = 2.2;
+const double kLinkDashOn = 6;
+const double kLinkDashOff = 4;
+const double kLinkHandleRadius = 2.6;
+
+/// Halo around the mark the next link starts from, past its chip.
+const double kLinkStartHalo = 3.5;
+const double kLinkChipRadius = 4;
+
+/// How much of a link is left off at each end, so the line starts at the
+/// end ring instead of crossing the mark's glyph.
+const double kLinkEndTrim = 7.5;
+
 /// Stroke widths in logical pixels.
 const double kThinLineWidth = 1;
 const double kThickLineWidth = 2;
@@ -53,6 +71,7 @@ class BoardPainter extends CustomPainter {
     required this.cache,
     required this.fontFamily,
     this.noteHighlightShape = NoteHighlightShape.roundedSquare,
+    this.linkVisibility = LinkVisibility.always,
   });
 
   final PlayState state;
@@ -60,6 +79,7 @@ class BoardPainter extends CustomPainter {
   final BoardTextCache cache;
   final String fontFamily;
   final NoteHighlightShape noteHighlightShape;
+  final LinkVisibility linkVisibility;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -185,6 +205,10 @@ class BoardPainter extends CustomPainter {
 
     final notes = state.notes;
 
+    // Which marks sit on a link chip: 2 strong, 1 weak, 0 none.
+    final linkEnd = Uint8List(81 * 9);
+    _paintLinks(canvas, Size(w, h), linkEnd);
+
     final insetX = cellW * kNoteInset;
     final insetY = cellH * kNoteInset;
     final subW = (cellW - insetX * 2) / 3;
@@ -239,8 +263,9 @@ class BoardPainter extends CustomPainter {
         if (mask & (1 << (d - 1)) == 0) continue;
         final nr = (d - 1) ~/ 3;
         final nc = (d - 1) % 3;
+        final onLink = linkEnd[i * 9 + d - 1];
         final slot = chipSlot[d];
-        final lit = slot >= 0;
+        final lit = slot >= 0 && onLink == 0; // a link chip wins the slot
         if (lit) {
           final box = Rect.fromLTWH(
             c * cellW + insetX + nc * subW,
@@ -279,7 +304,11 @@ class BoardPainter extends CustomPainter {
         }
         final tp = cache.digit(
           digit: d,
-          style: lit
+          style: onLink == 2
+              ? DigitStyle.onStrongLink
+              : onLink == 1
+              ? DigitStyle.onWeakLink
+              : lit
               ? DigitStyle.noteHighlighted
               : i == selected || strongFill[i]
               ? DigitStyle.noteOnSelected
@@ -304,11 +333,91 @@ class BoardPainter extends CustomPainter {
     }
   }
 
+  /// Links between pencil marks, under the marks and above the fills:
+  /// strong solid, weak dashed, a handle halfway, a solid chip on each end
+  /// and a haloed chip on the mark the next link starts from. Fills
+  /// [linkEnd] (2 strong, 1 weak, 0 none per mark) for the digit pass.
+  void _paintLinks(Canvas canvas, Size size, Uint8List linkEnd) {
+    final start = state.linkStart;
+    if (state.links.isEmpty && !(state.linkArmed && start != null)) return;
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = kLinkWidth
+      ..strokeCap = StrokeCap.round;
+    final fill = Paint();
+    for (final link in state.links) {
+      if (!linkShown(state, link, linkVisibility)) continue;
+      final color = link.strong ? colors.linkStrong : colors.linkWeak;
+      final path = _trimmed(linkPath(link, size));
+      stroke.color = color;
+      canvas.drawPath(link.strong ? path : _dashed(path), stroke);
+      fill.color = color;
+      canvas.drawCircle(linkHandle(link, size), kLinkHandleRadius, fill);
+      final kind = link.strong ? 2 : 1;
+      for (final (cell, digit) in [
+        (link.cellA, link.digitA),
+        (link.cellB, link.digitB),
+      ]) {
+        final at = cell * 9 + digit - 1;
+        if (linkEnd[at] < kind) linkEnd[at] = kind; // strong wins the chip
+      }
+    }
+    if (state.linkArmed && start != null) {
+      linkEnd[start.cell * 9 + start.digit - 1] = 2;
+      // The start is unmistakable: a halo past its chip.
+      fill.color = colors.linkStrong.withValues(alpha: 0.35);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          noteBox(start.cell, start.digit, size).inflate(kLinkStartHalo),
+          const Radius.circular(kLinkChipRadius + kLinkStartHalo),
+        ),
+        fill,
+      );
+    }
+    for (var at = 0; at < linkEnd.length; at++) {
+      if (linkEnd[at] == 0) continue;
+      fill.color = linkEnd[at] == 2 ? colors.linkStrong : colors.linkWeak;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          noteBox(at ~/ 9, at % 9 + 1, size).deflate(0.4),
+          const Radius.circular(kLinkChipRadius),
+        ),
+        fill,
+      );
+    }
+  }
+
+  static Path _trimmed(Path path) {
+    final out = Path();
+    for (final metric in path.computeMetrics()) {
+      final trim = kLinkEndTrim < (metric.length - 2) / 2
+          ? kLinkEndTrim
+          : (metric.length - 2) / 2;
+      if (trim <= 0) continue;
+      out.addPath(metric.extractPath(trim, metric.length - trim), Offset.zero);
+    }
+    return out;
+  }
+
+  static Path _dashed(Path path) {
+    final out = Path();
+    for (final metric in path.computeMetrics()) {
+      var at = 0.0;
+      while (at < metric.length) {
+        final end = (at + kLinkDashOn).clamp(0.0, metric.length);
+        out.addPath(metric.extractPath(at, end), Offset.zero);
+        at = end + kLinkDashOff;
+      }
+    }
+    return out;
+  }
+
   @override
   bool shouldRepaint(BoardPainter oldDelegate) {
     return !identical(oldDelegate.state, state) ||
         oldDelegate.colors != colors ||
         oldDelegate.fontFamily != fontFamily ||
-        oldDelegate.noteHighlightShape != noteHighlightShape;
+        oldDelegate.noteHighlightShape != noteHighlightShape ||
+        oldDelegate.linkVisibility != linkVisibility;
   }
 }

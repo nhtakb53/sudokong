@@ -85,6 +85,21 @@ void main() {
         }
       });
 
+      test('link lines stand out on the cell and the peer band', () {
+        for (final line in [c.linkStrong, c.linkWeak]) {
+          expect(contrast(line, c.cell), greaterThanOrEqualTo(3.0));
+          expect(contrast(line, c.peer), greaterThanOrEqualTo(2.5));
+        }
+      });
+
+      test('digits read on the link chips', () {
+        expect(
+          contrast(c.linkStrongText, c.linkStrong),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(contrast(c.linkWeakText, c.linkWeak), greaterThanOrEqualTo(4.5));
+      });
+
       test('main digits read on every fill', () {
         for (final bg in [c.cell, c.peer, c.sameDigit, c.selected]) {
           expect(

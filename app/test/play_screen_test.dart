@@ -23,6 +23,9 @@ const _solution =
 
 class _FixedPlayController extends PlayController {
   @override
+  void scheduleSave() {}
+
+  @override
   Future<PlayState> build() async => PlayState.fromPuzzle(
     const GeneratedPuzzle(
       puzzle: _puzzle,
@@ -183,6 +186,37 @@ void main() {
     expect(state().highlightOrder, isEmpty);
   });
 
+  testWidgets('the link tool draws a chain between tapped marks', (
+    tester,
+  ) async {
+    await pumpPlay(tester);
+    await tester.tap(find.byTooltip('후보 채움'));
+    await tester.pump();
+    await tester.tap(find.text('연결'));
+    await tester.pump();
+    expect(state().linkArmed, isTrue);
+    // Mark 4 sits in the middle-left slot of its cell.
+    final board = tester.getRect(find.byType(BoardView));
+    Offset mark4(int row, int col) =>
+        cellCenter(tester, row, col) + Offset(-board.width / 27, 0);
+    await tester.tapAt(mark4(0, 2)); // r1c3 holds 1, 2, 4
+    await tester.pump();
+    expect(state().linkStart, (cell: 2, digit: 4));
+    await tester.tapAt(mark4(1, 2)); // r2c3 holds 2, 4, 7
+    await tester.pump();
+    expect(state().links.length, 1);
+    await tester.tapAt(mark4(1, 1)); // r2c2 holds 2, 4, 7
+    await tester.pump();
+    expect(state().links.length, 2, reason: 'the chain continues');
+    await tester.tapAt(mark4(1, 1));
+    await tester.pump();
+    expect(state().linkStart, isNull, reason: 'tapping the start ends it');
+    await tester.tap(find.byKey(const ValueKey('numpad-5')));
+    await tester.pump();
+    expect(state().linkArmed, isFalse, reason: 'a digit key takes over');
+    expect(state().links.length, 2);
+  });
+
   testWidgets('an armed swatch paints cells; a digit key takes over', (
     tester,
   ) async {
@@ -195,7 +229,7 @@ void main() {
     expect(state().cellColors[0], 2);
     expect(state().selected, isNull, reason: 'painting does not select');
 
-    await tester.tap(find.byKey(const ValueKey('paint-eraser')));
+    await tester.tap(find.text('지우개'));
     await tester.pump();
     await tester.tapAt(cellCenter(tester, 0, 0));
     await tester.pump();
@@ -207,6 +241,40 @@ void main() {
     await tester.tapAt(cellCenter(tester, 0, 0));
     await tester.pump();
     expect(state().selected, 0, reason: 'taps select again');
+  });
+
+  testWidgets('the top-row button wipes paint and links in one go', (
+    tester,
+  ) async {
+    await pumpPlay(tester);
+    final wipe = find.byTooltip('지우기 메뉴');
+    await tester.tap(find.byKey(const ValueKey('paint-2')));
+    await tester.pump();
+    await tester.tapAt(cellCenter(tester, 0, 0));
+    await tester.pump();
+    expect(state().hasPaint, isTrue);
+    await tester.tap(wipe);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('모두 지우기'));
+    await tester.pumpAndSettle();
+    expect(state().hasPaint, isFalse);
+    expect(state().links, isEmpty);
+    expect(state().canUndo, isTrue);
+  });
+
+  testWidgets('a tap on the keypad box beside the keys clears too', (
+    tester,
+  ) async {
+    await pumpPlay(tester);
+    await tester.tapAt(cellCenter(tester, 0, 0)); // given 5
+    await tester.pump();
+    expect(state().highlightOrder, [5]);
+    // The box's own padding, left of the first key.
+    final pad = tester.getRect(find.byType(NumberPad));
+    await tester.tapAt(Offset(pad.left + 3, pad.bottom - 6));
+    await tester.pump();
+    expect(state().selected, isNull);
+    expect(state().highlightOrder, isEmpty);
   });
 
   testWidgets('the candidate-count buttons toggle their filters', (

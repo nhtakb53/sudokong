@@ -439,6 +439,36 @@ void main() {
       expect(s.noteColors[2 * 9 + 3], 1);
     });
 
+    test('the eraser erases a selected cell layer by layer, else arms', () {
+      var s = reduce(fresh(), const SelectCell(2));
+      s = reduce(s, const EnterDigit(4));
+      s = reduce(s, const PickPaint(2));
+      s = reduce(s, const PaintCell(2));
+      s = reduce(s, const SelectCell(2));
+      s = reduce(s, const EraseTool());
+      expect(s.values[2], 0, reason: 'the digit goes first');
+      expect(s.cellColors[2], 2, reason: 'paint stays for the next tap');
+      expect(s.paintArmed, isFalse);
+      s = reduce(s, const EraseTool());
+      expect(s.cellColors[2], 0);
+      s = reduce(s, const EraseTool());
+      expect(s.paintArmed, isTrue, reason: 'nothing left: the eraser arms');
+      expect(s.paintColor, 0);
+      // Armed, a tap erases that cell's marks and paint together.
+      s = reduce(s, const FillCandidates());
+      s = reduce(s, const PaintNote(3, 2));
+      s = reduce(s, const PaintCell(3));
+      expect(s.notes[3], 0);
+      expect(s.noteColors[3 * 9 + 1], 0);
+      // A given keeps its digit; only its paint can go.
+      s = reduce(s, const PaintCell(0));
+      expect(s.values[0], 5);
+      // Digit-first: the eraser key always arms.
+      s = reduce(fresh(), const SelectCell(2), inputMode: InputMode.digitFirst);
+      s = reduce(s, const EraseTool(), inputMode: InputMode.digitFirst);
+      expect(s.paintArmed, isTrue);
+    });
+
     test('a color arms, the same one disarms, a digit key disarms', () {
       var s = reduce(fresh(), const PickPaint(4));
       expect(s.paintArmed, isTrue);
@@ -454,6 +484,155 @@ void main() {
       s = reduce(s, const SetPaintTarget(PaintTarget.note));
       expect(s.paintTarget, PaintTarget.note);
       expect(s.undoStack, isEmpty, reason: 'tool changes are not undoable');
+    });
+  });
+
+  group('links', () {
+    PlayState withNotes(Map<int, List<int>> marks) {
+      final notes = Uint16List(81);
+      marks.forEach((cell, digits) {
+        for (final d in digits) {
+          notes[cell] |= 1 << (d - 1);
+        }
+      });
+      return fresh().copyWith(notes: notes);
+    }
+
+    test('strength follows bivalue cells and conjugate pairs', () {
+      // r1c3 (2) and r2c3 (11) share column 3 and box 1.
+      var s = withNotes({
+        2: [1, 4],
+        11: [4, 7],
+        3: [2, 6],
+        5: [2, 4, 6],
+      });
+      expect(linkStrength(s.notes, 2, 4, 11, 4), isTrue);
+      expect(linkStrength(s.notes, 3, 2, 3, 6), isTrue, reason: 'bivalue');
+      expect(linkStrength(s.notes, 5, 2, 5, 6), isFalse, reason: '3 marks');
+      expect(linkStrength(s.notes, 2, 4, 3, 6), isNull, reason: 'no logic');
+      expect(linkStrength(s.notes, 2, 4, 40, 4), isNull, reason: 'no unit');
+      // A third 4 in both the column and the box makes the pair weak.
+      s = withNotes({
+        2: [1, 4],
+        11: [4, 7],
+        10: [4],
+        29: [4],
+      });
+      expect(linkStrength(s.notes, 2, 4, 11, 4), isFalse);
+    });
+
+    test('taps start a chain, extend it, end it and remove links', () {
+      // 4 sits in r1c3, r2c2, r2c3 and r4c3: three per box and column.
+      var s = withNotes({
+        2: [1, 4],
+        11: [4, 7],
+        10: [4, 7],
+        29: [4],
+      });
+      s = reduce(s, const ToggleLinkTool());
+      expect(s.linkArmed, isTrue);
+      s = reduce(s, const TapForLink(2, 4));
+      expect(s.linkStart, (cell: 2, digit: 4));
+      expect(s.links, isEmpty);
+      s = reduce(s, const TapForLink(11, 4));
+      expect(s.links.length, 1);
+      expect(s.links.first.strong, isFalse, reason: 'box holds 4 thrice');
+      expect(s.linkStart, (cell: 11, digit: 4), reason: 'chain goes on');
+      s = reduce(s, const TapForLink(11, 7));
+      expect(s.links.length, 2);
+      expect(s.links.last.strong, isTrue, reason: 'bivalue cell');
+      s = reduce(s, const TapForLink(11, 7));
+      expect(s.linkStart, isNull, reason: 'tapping the start ends it');
+      expect(s.undoStack.length, 2, reason: 'each link is one undo step');
+      // The same two ends again remove that link.
+      s = reduce(s, const TapForLink(2, 4));
+      s = reduce(s, const TapForLink(11, 4));
+      expect(s.links.length, 1);
+      expect(s.linkStart, isNull);
+      // A missing mark or an impossible pair changes nothing.
+      s = reduce(s, const TapForLink(10, 4));
+      expect(identical(reduce(s, const TapForLink(2, 7)), s), isTrue);
+      expect(identical(reduce(s, const TapForLink(11, 7)), s), isTrue);
+      s = reduce(s, const ClearSelection());
+      expect(s.linkStart, isNull, reason: 'empty space drops the start');
+    });
+
+    test('mark changes prune links and recompute automatic types', () {
+      // 4 sits in r1c3, r2c2, r2c3 and r4c3: three per box and column.
+      var s = withNotes({
+        2: [1, 4],
+        11: [4, 7],
+        10: [4, 7],
+        29: [4],
+      });
+      s = reduce(s, const ToggleLinkTool());
+      s = reduce(s, const TapForLink(2, 4));
+      s = reduce(s, const TapForLink(11, 4)); // weak: three 4s around
+      s = reduce(s, const ToggleLinkTool());
+      // Dropping the 4 in r2c2 leaves a conjugate pair: strong now.
+      s = reduce(s, const SelectCell(10));
+      s = reduce(s, const ToggleNoteMode());
+      s = reduce(s, const EnterNote(4));
+      expect(s.links.single.strong, isTrue);
+      // A hand-set type survives recomputation.
+      s = reduce(s, const ToggleLinkType(0));
+      expect(s.links.single.strong, isFalse);
+      expect(s.links.single.manual, isTrue);
+      s = reduce(s, const EnterNote(4)); // puts the 4 back: still weak
+      expect(s.links.single.strong, isFalse);
+      // Placing 4 in r1c3 removes the 4 marks it saw: the link goes.
+      s = reduce(s, const ToggleNoteMode());
+      s = reduce(s, const SelectCell(2));
+      s = reduce(s, const EnterDigit(4));
+      expect(s.links, isEmpty);
+      s = reduce(s, const Undo());
+      expect(s.links.length, 1, reason: 'undo brings the link back');
+    });
+
+    test('partial wipes leave the other layers alone', () {
+      var s = withNotes({
+        2: [1, 4],
+        11: [4, 7],
+      });
+      s = reduce(s, const PickPaint(2));
+      s = reduce(s, const PaintCell(0));
+      s = reduce(s, const PaintNote(2, 4));
+      s = reduce(s, const ToggleLinkTool());
+      s = reduce(s, const TapForLink(2, 4));
+      s = reduce(s, const TapForLink(11, 4));
+      s = reduce(s, const ClearLinks());
+      expect(s.links, isEmpty);
+      expect(s.cellColors[0], 2);
+      expect(s.noteColors[2 * 9 + 3], 2);
+      s = reduce(s, const ClearCellPaint());
+      expect(s.cellColors[0], 0);
+      expect(s.noteColors[2 * 9 + 3], 2);
+      s = reduce(s, const ClearNotePaint());
+      expect(s.noteColors[2 * 9 + 3], 0);
+      expect(identical(reduce(s, const ClearNotePaint()), s), isTrue);
+      expect(s.undoStack.length, 6, reason: 'each wipe is one undo step');
+    });
+
+    test('tools are exclusive and clear paint drops links too', () {
+      var s = withNotes({
+        2: [1, 4],
+        11: [4, 7],
+      });
+      s = reduce(s, const ToggleLinkTool());
+      s = reduce(s, const TapForLink(2, 4));
+      s = reduce(s, const PickPaint(3));
+      expect(s.linkArmed, isFalse);
+      expect(s.linkStart, isNull);
+      expect(s.paintArmed, isTrue);
+      s = reduce(s, const ToggleLinkTool());
+      expect(s.paintArmed, isFalse);
+      s = reduce(s, const TapForLink(2, 4));
+      s = reduce(s, const TapForLink(11, 4));
+      s = reduce(s, const EnterDigit(9));
+      expect(s.linkArmed, isFalse, reason: 'a digit key takes over');
+      expect(s.links.length, 1, reason: 'links stay when the tool is off');
+      s = reduce(s, const ClearPaint());
+      expect(s.links, isEmpty);
     });
   });
 

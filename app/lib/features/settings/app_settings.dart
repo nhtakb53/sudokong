@@ -43,6 +43,21 @@ enum NoteHighlightShape {
   );
 }
 
+/// When links drawn between pencil marks are shown.
+enum LinkVisibility {
+  /// Always.
+  always,
+
+  /// Only while one of the link's digits is highlighted (and while the
+  /// link tool is armed).
+  highlighted;
+
+  static LinkVisibility fromName(String? name) => values.firstWhere(
+    (v) => v.name == name,
+    orElse: () => LinkVisibility.always,
+  );
+}
+
 /// All user preferences in one immutable value.
 ///
 /// Add a field, a default, a `copyWith` parameter and a JSON key; nothing
@@ -56,6 +71,7 @@ class AppSettings {
     this.noteHighlightShape = NoteHighlightShape.roundedSquare,
     this.inputMode = InputMode.cellFirst,
     this.longPressMs = defaultLongPressMs,
+    this.linkVisibility = LinkVisibility.always,
   });
 
   static const int defaultLongPressMs = 400;
@@ -74,6 +90,8 @@ class AppSettings {
   /// How long a key or cell must be held to force a value entry.
   final int longPressMs;
 
+  final LinkVisibility linkVisibility;
+
   Duration get longPress => Duration(milliseconds: longPressMs);
 
   AppSettings copyWith({
@@ -83,6 +101,7 @@ class AppSettings {
     NoteHighlightShape? noteHighlightShape,
     InputMode? inputMode,
     int? longPressMs,
+    LinkVisibility? linkVisibility,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -94,6 +113,7 @@ class AppSettings {
         minLongPressMs,
         maxLongPressMs,
       ),
+      linkVisibility: linkVisibility ?? this.linkVisibility,
     );
   }
 
@@ -105,6 +125,7 @@ class AppSettings {
     'noteHighlightShape': noteHighlightShape.name,
     'inputMode': inputMode.name,
     'longPressMs': longPressMs,
+    'linkVisibility': linkVisibility.name,
   };
 
   String toJsonString() => jsonEncode(toJson());
@@ -128,6 +149,9 @@ class AppSettings {
         final int ms => ms.clamp(minLongPressMs, maxLongPressMs),
         _ => defaultLongPressMs,
       },
+      linkVisibility: LinkVisibility.fromName(
+        json['linkVisibility'] as String?,
+      ),
     );
   }
 
@@ -151,7 +175,8 @@ class AppSettings {
       other.numberPadLayout == numberPadLayout &&
       other.noteHighlightShape == noteHighlightShape &&
       other.inputMode == inputMode &&
-      other.longPressMs == longPressMs;
+      other.longPressMs == longPressMs &&
+      other.linkVisibility == linkVisibility;
 
   @override
   int get hashCode => Object.hash(
@@ -161,5 +186,6 @@ class AppSettings {
     noteHighlightShape,
     inputMode,
     longPressMs,
+    linkVisibility,
   );
 }

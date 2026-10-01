@@ -17,6 +17,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:sudokong/core/theme/app_theme.dart';
 import 'package:sudokong/core/theme/color_theme.dart';
 import 'package:sudokong/features/help/glossary_screen.dart';
+import 'package:sudokong/features/home/home_screen.dart';
 import 'package:sudokong/features/play/model/play_intent.dart';
 import 'package:sudokong/features/play/model/play_reducer.dart';
 import 'package:sudokong/features/play/model/play_state.dart';
@@ -60,19 +61,25 @@ PlayState _sampleState() {
   return reduce(s, const SelectCell(39));
 }
 
-class _FixedPlayController extends PlayController {
+/// Test doubles never write to disk, so no save timer is left pending.
+abstract class _QuietPlayController extends PlayController {
+  @override
+  void scheduleSave() {}
+}
+
+class _FixedPlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async => _sampleState();
 }
 
-class _NoteModePlayController extends PlayController {
+class _NoteModePlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async =>
       reduce(_sampleState(), const ToggleNoteMode());
 }
 
 /// One cell away from solved, with that cell selected.
-class _AlmostDonePlayController extends PlayController {
+class _AlmostDonePlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async {
     final cells = GridCodec.parse(_solution);
@@ -88,14 +95,14 @@ class _AlmostDonePlayController extends PlayController {
   }
 }
 
-class _CandidatesPlayController extends PlayController {
+class _CandidatesPlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async =>
       reduce(_sampleState(), const FillCandidates());
 }
 
 /// All candidates filled and every digit highlighted in its own color.
-class _MultiPlayController extends PlayController {
+class _MultiPlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async {
     var s = reduce(_sampleState(), const FillCandidates()); // 8 is lit
@@ -107,7 +114,7 @@ class _MultiPlayController extends PlayController {
 }
 
 /// A few painted cells and marks, with a color still armed.
-class _PaintedPlayController extends PlayController {
+class _PaintedPlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async {
     var s = reduce(_sampleState(), const FillCandidates());
@@ -124,8 +131,28 @@ class _PaintedPlayController extends PlayController {
   }
 }
 
+/// All candidates filled and a chain of links drawn with the tool armed.
+class _LinkedPlayController extends _QuietPlayController {
+  @override
+  Future<PlayState> build() async {
+    var s = reduce(_sampleState(), const FillCandidates());
+    s = reduce(s, const ToggleLinkTool());
+    for (final (cell, digit) in [
+      (10, 2),
+      (10, 7),
+      (11, 7),
+      (15, 7),
+      (15, 3),
+      (16, 3),
+    ]) {
+      s = reduce(s, TapForLink(cell, digit));
+    }
+    return s;
+  }
+}
+
 /// All candidates filled, with both count filters switched on.
-class _FilteredPlayController extends PlayController {
+class _FilteredPlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async {
     var s = reduce(_sampleState(), const FillCandidates());
@@ -178,6 +205,7 @@ Future<void> _pumpApp(
   String? seededSettings,
   bool candidates = false,
   bool filters = false,
+  bool links = false,
   bool paint = false,
   bool multi = false,
   bool noteMode = false,
@@ -208,6 +236,8 @@ Future<void> _pumpApp(
               ? _NoteModePlayController.new
               : filters
               ? _FilteredPlayController.new
+              : links
+              ? _LinkedPlayController.new
               : paint
               ? _PaintedPlayController.new
               : multi
@@ -301,6 +331,18 @@ void main() {
       );
     }, skip: !_enabled);
 
+    testWidgets('play screen, links (${brightness.name})', (tester) async {
+      await _pumpApp(
+        tester,
+        brightness: brightness,
+        home: const PlayScreen(),
+        links: true,
+      );
+      await tester.runAsync(
+        () => _capture(tester, 'play_links_${brightness.name}'),
+      );
+    }, skip: !_enabled);
+
     testWidgets('play screen, paint mode (${brightness.name})', (tester) async {
       await _pumpApp(
         tester,
@@ -310,6 +352,20 @@ void main() {
       );
       await tester.runAsync(
         () => _capture(tester, 'play_paint_${brightness.name}'),
+      );
+    }, skip: !_enabled);
+
+    testWidgets('wipe sheet (${brightness.name})', (tester) async {
+      await _pumpApp(
+        tester,
+        brightness: brightness,
+        home: const PlayScreen(),
+        paint: true,
+      );
+      await tester.tap(find.byTooltip('지우기 메뉴'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () => _capture(tester, 'wipe_sheet_${brightness.name}'),
       );
     }, skip: !_enabled);
 
@@ -325,6 +381,21 @@ void main() {
       await tester.runAsync(
         () => _capture(tester, 'play_multi_${brightness.name}'),
       );
+    }, skip: !_enabled);
+
+    testWidgets('home screen (${brightness.name})', (tester) async {
+      await _pumpApp(
+        tester,
+        brightness: brightness,
+        home: const HomeScreen(),
+        candidates: true,
+      );
+      // Let the logo decode before the capture.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+      await tester.runAsync(() => _capture(tester, 'home_${brightness.name}'));
     }, skip: !_enabled);
 
     testWidgets('glossary screen (${brightness.name})', (tester) async {

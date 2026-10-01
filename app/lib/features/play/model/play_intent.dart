@@ -86,6 +86,13 @@ final class PickPaint extends PlayIntent {
   final int color;
 }
 
+/// The eraser key: with a cell selected that holds something of the
+/// player's (cell-first), erase it right away; otherwise arm the eraser so
+/// the next board taps erase.
+final class EraseTool extends PlayIntent {
+  const EraseTool();
+}
+
 /// Paint cell [index] with the picked color; the same color again, or the
 /// eraser, clears it.
 final class PaintCell extends PlayIntent {
@@ -100,9 +107,51 @@ final class PaintNote extends PlayIntent {
   final int digit;
 }
 
-/// Remove every cell and pencil-mark color.
+/// Remove every cell and pencil-mark color, and every link.
 final class ClearPaint extends PlayIntent {
   const ClearPaint();
+}
+
+/// Remove every link, keeping the paint.
+final class ClearLinks extends PlayIntent {
+  const ClearLinks();
+}
+
+/// Remove every cell color, keeping mark colors and links.
+final class ClearCellPaint extends PlayIntent {
+  const ClearCellPaint();
+}
+
+/// Remove every pencil-mark color, keeping cell colors and links.
+final class ClearNotePaint extends PlayIntent {
+  const ClearNotePaint();
+}
+
+/// Arm or disarm the link tool. While armed, mark taps draw links.
+final class ToggleLinkTool extends PlayIntent {
+  const ToggleLinkTool();
+}
+
+/// A tap on pencil mark [digit] in cell [index] with the link tool armed:
+/// the first tap picks the start, the next draws a link and moves the
+/// start there, tapping the start again ends the chain, and tapping the
+/// far end of an existing link from its start removes that link.
+final class TapForLink extends PlayIntent {
+  const TapForLink(this.index, this.digit);
+  final int index;
+  final int digit;
+}
+
+/// Flip link [index] between strong and weak, by hand.
+final class ToggleLinkType extends PlayIntent {
+  const ToggleLinkType(this.index);
+  final int index;
+}
+
+/// Remove link [index].
+final class RemoveLink extends PlayIntent {
+  const RemoveLink(this.index);
+  final int index;
 }
 
 /// Restore the board as it was before the last change.

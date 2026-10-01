@@ -11,6 +11,8 @@ void main() {
       GameTimerState state() => container.read(gameTimerProvider);
       final timer = container.read(gameTimerProvider.notifier);
 
+      expect(state().paused, isTrue, reason: 'starts paused until play');
+      timer.resume();
       expect(state().seconds, 0);
       async.elapse(const Duration(seconds: 3));
       expect(state().seconds, 3);
@@ -37,6 +39,7 @@ void main() {
       GameTimerState state() => container.read(gameTimerProvider);
       final timer = container.read(gameTimerProvider.notifier);
 
+      timer.resume();
       async.elapse(const Duration(seconds: 4));
       timer.stop();
       expect(state().finished, isTrue);

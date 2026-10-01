@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../model/play_intent.dart';
 import '../model/play_state.dart';
+import '../../settings/app_settings.dart';
 import '../../settings/settings_provider.dart';
 import '../play_controller.dart';
 import 'board_painter.dart';
 import 'board_text_cache.dart';
+import 'link_geometry.dart';
 
 /// The 9×9 board: one canvas plus a tap layer.
 class BoardView extends ConsumerStatefulWidget {
@@ -23,6 +25,7 @@ class BoardView extends ConsumerStatefulWidget {
 
 class _BoardViewState extends ConsumerState<BoardView> {
   final _cache = BoardTextCache();
+  LinkVisibility _linkVisibility = LinkVisibility.always;
 
   int _cellAt(Offset position, Size size) {
     final col = (position.dx ~/ (size.width / 9)).clamp(0, 8);
@@ -74,18 +77,60 @@ class _BoardViewState extends ConsumerState<BoardView> {
     }
   }
 
-  /// With a color armed a tap paints; otherwise it selects.
-  void _onTap(Offset position, Size size) {
+  /// Index of the shown link whose handle is under [position], or null.
+  int? _linkHandleAt(Offset position, Size size) {
     final state = widget.state;
-    if (state.paintArmed) return _paint(position, size, state.paintTarget);
-    ref
-        .read(playControllerProvider.notifier)
-        .dispatch(SelectCell(_cellAt(position, size)));
+    int? best;
+    var bestDistance = 14.0;
+    for (var i = 0; i < state.links.length; i++) {
+      final link = state.links[i];
+      if (!linkShown(state, link, _linkVisibility)) continue;
+      final distance = (position - linkHandle(link, size)).distance;
+      if (distance <= bestDistance) {
+        bestDistance = distance;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  /// With the link tool armed a tap draws links (or flips a link's type at
+  /// its handle); with a color armed it paints; otherwise it selects.
+  void _onTap(Offset position, Size size) {
+    final controller = ref.read(playControllerProvider.notifier);
+    final state = widget.state;
+    final index = _cellAt(position, size);
+    if (state.linkArmed) {
+      final handle = _linkHandleAt(position, size);
+      if (handle != null) {
+        HapticFeedback.selectionClick();
+        controller.dispatch(ToggleLinkType(handle));
+        return;
+      }
+      final digit = _nearestNote(index, position, size);
+      if (digit == null) return;
+      HapticFeedback.selectionClick();
+      controller.dispatch(TapForLink(index, digit));
+      return;
+    }
+    if (state.paintArmed) {
+      if (state.paintColor == 0) {
+        final handle = _linkHandleAt(position, size);
+        if (handle != null) {
+          HapticFeedback.selectionClick();
+          controller.dispatch(RemoveLink(handle));
+          return;
+        }
+      }
+      return _paint(position, size, state.paintTarget);
+    }
+    controller.dispatch(SelectCell(index));
   }
 
   /// With a color armed a long press always paints the nearest pencil
   /// mark, so single marks can be colored without switching the target.
   void _onLongPress(Offset position, Size size) {
+    if (widget.state.linkArmed) return _onTap(position, size);
     if (widget.state.paintArmed) {
       return _paint(position, size, PaintTarget.note);
     }
@@ -102,6 +147,9 @@ class _BoardViewState extends ConsumerState<BoardView> {
       settingsProvider.select((s) => s.noteHighlightShape),
     );
     final longPress = ref.watch(settingsProvider.select((s) => s.longPress));
+    _linkVisibility = ref.watch(
+      settingsProvider.select((s) => s.linkVisibility),
+    );
     return AspectRatio(
       aspectRatio: kBoardAspectRatio,
       child: LayoutBuilder(
@@ -134,6 +182,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
                   cache: _cache,
                   fontFamily: AppTheme.fontFamily,
                   noteHighlightShape: shape,
+                  linkVisibility: _linkVisibility,
                 ),
               ),
             ),

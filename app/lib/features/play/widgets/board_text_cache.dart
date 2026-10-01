@@ -94,6 +94,16 @@ class BoardTextCache {
           fontWeight: FontWeight.w400,
           fontSize: cell * kNoteScale,
         ),
+        DigitStyle.onStrongLink => TextStyle(
+          color: colors.linkStrongText,
+          fontWeight: FontWeight.w600,
+          fontSize: cell * kNoteScale,
+        ),
+        DigitStyle.onWeakLink => TextStyle(
+          color: colors.linkWeakText,
+          fontWeight: FontWeight.w600,
+          fontSize: cell * kNoteScale,
+        ),
         DigitStyle.noteHighlighted => TextStyle(
           color: colors.digitSlots[slot].chipText,
           fontWeight: FontWeight.w500,
@@ -124,4 +134,6 @@ enum DigitStyle {
   noteOnSelected,
   noteOnPeer,
   noteHighlighted,
+  onStrongLink,
+  onWeakLink,
 }

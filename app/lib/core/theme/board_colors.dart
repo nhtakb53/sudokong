@@ -54,6 +54,10 @@ class BoardColors extends ThemeExtension<BoardColors> {
     required this.twoNotesTile,
     required this.threeNotesTile,
     required this.extraSlots,
+    required this.linkStrong,
+    required this.linkWeak,
+    required this.linkStrongText,
+    required this.linkWeakText,
   });
 
   final Color cell;
@@ -85,6 +89,14 @@ class BoardColors extends ThemeExtension<BoardColors> {
 
   /// Fill for an empty cell with exactly three pencil marks.
   final Color threeNotesTile;
+
+  /// Strong link between pencil marks (drawn solid) and weak link (dashed).
+  final Color linkStrong;
+  final Color linkWeak;
+
+  /// Digits on the chips at a link's ends (and on the start chip).
+  final Color linkStrongText;
+  final Color linkWeakText;
 
   /// Colors for the second to ninth digit highlighted at once: amber,
   /// peach, green, violet, pink, teal, lime, gray.
@@ -126,6 +138,10 @@ class BoardColors extends ThemeExtension<BoardColors> {
     noteHighlightText: Color(0xFFFFFFFF),
     twoNotesTile: Color(0xFFA8D8DC),
     threeNotesTile: Color(0xFFCFC5EF),
+    linkStrong: Color(0xFFB8511A),
+    linkWeak: Color(0xFF54728F),
+    linkStrongText: Color(0xFFFFFFFF),
+    linkWeakText: Color(0xFFFFFFFF),
     extraSlots: [
       // amber
       HighlightSlot(
@@ -201,6 +217,10 @@ class BoardColors extends ThemeExtension<BoardColors> {
     noteHighlightText: Color(0xFF0E1B33),
     twoNotesTile: Color(0xFF1D565D),
     threeNotesTile: Color(0xFF4A4188),
+    linkStrong: Color(0xFFF0A05A),
+    linkWeak: Color(0xFF8FA8C8),
+    linkStrongText: Color(0xFF2A1508),
+    linkWeakText: Color(0xFF0E1B33),
     extraSlots: [
       // amber
       HighlightSlot(
@@ -272,6 +292,10 @@ class BoardColors extends ThemeExtension<BoardColors> {
     Color? twoNotesTile,
     Color? threeNotesTile,
     List<HighlightSlot>? extraSlots,
+    Color? linkStrong,
+    Color? linkWeak,
+    Color? linkStrongText,
+    Color? linkWeakText,
   }) {
     return BoardColors(
       cell: cell ?? this.cell,
@@ -291,6 +315,10 @@ class BoardColors extends ThemeExtension<BoardColors> {
       twoNotesTile: twoNotesTile ?? this.twoNotesTile,
       threeNotesTile: threeNotesTile ?? this.threeNotesTile,
       extraSlots: extraSlots ?? this.extraSlots,
+      linkStrong: linkStrong ?? this.linkStrong,
+      linkWeak: linkWeak ?? this.linkWeak,
+      linkStrongText: linkStrongText ?? this.linkStrongText,
+      linkWeakText: linkWeakText ?? this.linkWeakText,
     );
   }
 
@@ -328,6 +356,10 @@ class BoardColors extends ThemeExtension<BoardColors> {
               ? extraSlots[i].lerp(other.extraSlots[i], t)
               : extraSlots[i],
       ],
+      linkStrong: Color.lerp(linkStrong, other.linkStrong, t)!,
+      linkWeak: Color.lerp(linkWeak, other.linkWeak, t)!,
+      linkStrongText: Color.lerp(linkStrongText, other.linkStrongText, t)!,
+      linkWeakText: Color.lerp(linkWeakText, other.linkWeakText, t)!,
     );
   }
 }

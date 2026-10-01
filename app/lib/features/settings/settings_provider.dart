@@ -44,6 +44,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setLongPressMs(int ms) =>
       _update(state.copyWith(longPressMs: ms));
 
+  Future<void> setLinkVisibility(LinkVisibility visibility) =>
+      _update(state.copyWith(linkVisibility: visibility));
+
   Future<void> _update(AppSettings next) async {
     if (next == state) return;
     state = next;
