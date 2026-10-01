@@ -32,6 +32,13 @@ class SettingsScreen extends ConsumerWidget {
                         onChanged: notifier.setThemeMode,
                       ),
                     ),
+                    SettingsRow(
+                      title: '전체화면',
+                      trailing: Switch(
+                        value: settings.fullscreen,
+                        onChanged: notifier.setFullscreen,
+                      ),
+                    ),
                     // 색상 테마 행은 팔레트가 둘 이상 생길 때 여기에 추가한다.
                   ],
                 ),

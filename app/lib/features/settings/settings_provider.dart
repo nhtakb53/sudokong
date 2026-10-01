@@ -55,6 +55,9 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setAutoHighlight(bool on) =>
       _update(state.copyWith(autoHighlight: on));
 
+  Future<void> setFullscreen(bool on) =>
+      _update(state.copyWith(fullscreen: on));
+
   Future<void> _update(AppSettings next) async {
     if (next == state) return;
     state = next;

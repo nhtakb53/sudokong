@@ -75,6 +75,7 @@ class AppSettings {
     this.conjugatePairs = false,
     this.showTimer = true,
     this.autoHighlight = true,
+    this.fullscreen = false,
   });
 
   static const int defaultLongPressMs = 400;
@@ -105,6 +106,9 @@ class AppSettings {
   /// work regardless.
   final bool autoHighlight;
 
+  /// Hide the system status and navigation bars while the app is open.
+  final bool fullscreen;
+
   Duration get longPress => Duration(milliseconds: longPressMs);
 
   AppSettings copyWith({
@@ -118,6 +122,7 @@ class AppSettings {
     bool? conjugatePairs,
     bool? showTimer,
     bool? autoHighlight,
+    bool? fullscreen,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -133,6 +138,7 @@ class AppSettings {
       conjugatePairs: conjugatePairs ?? this.conjugatePairs,
       showTimer: showTimer ?? this.showTimer,
       autoHighlight: autoHighlight ?? this.autoHighlight,
+      fullscreen: fullscreen ?? this.fullscreen,
     );
   }
 
@@ -148,6 +154,7 @@ class AppSettings {
     'conjugatePairs': conjugatePairs,
     'showTimer': showTimer,
     'autoHighlight': autoHighlight,
+    'fullscreen': fullscreen,
   };
 
   String toJsonString() => jsonEncode(toJson());
@@ -177,6 +184,7 @@ class AppSettings {
       conjugatePairs: json['conjugatePairs'] == true,
       showTimer: json['showTimer'] != false,
       autoHighlight: json['autoHighlight'] != false,
+      fullscreen: json['fullscreen'] == true,
     );
   }
 
@@ -204,7 +212,8 @@ class AppSettings {
       other.linkVisibility == linkVisibility &&
       other.conjugatePairs == conjugatePairs &&
       other.showTimer == showTimer &&
-      other.autoHighlight == autoHighlight;
+      other.autoHighlight == autoHighlight &&
+      other.fullscreen == fullscreen;
 
   @override
   int get hashCode => Object.hash(
@@ -218,5 +227,6 @@ class AppSettings {
     conjugatePairs,
     showTimer,
     autoHighlight,
+    fullscreen,
   );
 }

@@ -33,6 +33,9 @@ void main() {
     expect(AppSettings.defaults.showTimer, isTrue);
     expect(AppSettings.defaults.autoHighlight, isTrue);
     expect(AppSettings.defaults.conjugatePairs, isFalse);
+    const full = AppSettings(fullscreen: true);
+    expect(AppSettings.fromJsonString(full.toJsonString()), full);
+    expect(AppSettings.defaults.fullscreen, isFalse);
     const links = AppSettings(linkVisibility: LinkVisibility.highlighted);
     expect(AppSettings.fromJsonString(links.toJsonString()), links);
     expect(AppSettings.defaults.linkVisibility, LinkVisibility.always);

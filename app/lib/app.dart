@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
@@ -21,8 +22,23 @@ class _SudokongAppState extends ConsumerState<SudokongApp> {
   void initState() {
     super.initState();
     // Leaving the app pauses the clock and saves the game; the player
-    // resumes the clock by hand.
-    _lifecycle = AppLifecycleListener(onHide: _park, onPause: _park);
+    // resumes the clock by hand. Coming back re-asserts the system bars'
+    // state, which Android may have reset meanwhile.
+    _lifecycle = AppLifecycleListener(
+      onHide: _park,
+      onPause: _park,
+      onResume: _applySystemBars,
+    );
+    _applySystemBars();
+  }
+
+  /// Fullscreen hides the status and navigation bars; a swipe from an
+  /// edge peeks them briefly.
+  void _applySystemBars() {
+    final fullscreen = ref.read(settingsProvider).fullscreen;
+    SystemChrome.setEnabledSystemUIMode(
+      fullscreen ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+    );
   }
 
   void _park() {
@@ -39,6 +55,10 @@ class _SudokongAppState extends ConsumerState<SudokongApp> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    ref.listen(
+      settingsProvider.select((s) => s.fullscreen),
+      (_, _) => _applySystemBars(),
+    );
     return MaterialApp(
       title: 'Sudokong',
       debugShowCheckedModeBanner: false,

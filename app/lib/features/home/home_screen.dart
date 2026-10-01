@@ -99,14 +99,6 @@ class HomeScreen extends ConsumerWidget {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '기본에 충실한 스도쿠',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
                   ],
                 ),
               ),
