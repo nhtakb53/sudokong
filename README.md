@@ -17,7 +17,7 @@ app/
 design/                      # 초기 목업과 앱 아이콘 원본
 ```
 
-게임 로직은 불변 `PlayState`와 순수 함수 `reduce(state, intent)`로만 바뀝니다. 보드는 `BoardPainter` 하나로 그리고, 모든 색은 `BoardColors` 토큰에서만 가져옵니다.
+게임 로직은 불변 `PlayState`와 순수 함수 `reduce(state, intent)`로만 바뀝니다. 보드는 `BoardPainter` 하나로 그리고, 보드의 모든 색은 `BoardColors` 토큰에서만 가져옵니다.
 
 ## 명령
 
@@ -30,7 +30,7 @@ SUDOKONG_SCREENSHOT=1 flutter test test/screenshot   # 화면 PNG → app/build/
 flutter build apk --debug
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
-cd packages/sudoku_engine && dart test
+cd ../packages/sudoku_engine && flutter test      # Flutter SDK가 포함된 workspace에서 엔진 테스트
 ```
 
 ## 디자인 규칙
@@ -38,3 +38,6 @@ cd packages/sudoku_engine && dart test
 - 색은 `app/lib/core/theme/board_colors.dart`에서만 바꿉니다. `app/test/board_colors_contrast_test.dart`가 WCAG 대비(후보수 4.5:1 등)를 지키는지 막아 줍니다.
 - 라이트는 순백 없이, 다크는 중립 다크 그레이. 기본수·입력수·후보수는 서로 다른 색입니다.
 - 글꼴은 Pretendard 하나로 통일합니다.
+- 홈은 게임 화면의 테마를 함께 씁니다. `board_colors.dart`의 `HomeColors`가 현재 `BoardColors`와 `ColorScheme`에서 색을 가져오며, 진입 화면의 배경도 같은 라이트·다크 바탕에 맞춥니다.
+- 앱 아이콘 원본은 `design/sudokong-app-icon.png`, 투명 캐릭터는 `app/assets/images/dalkong.png`입니다. 아이콘의 옅은 블루그레이 배경에는 홈의 보드 장식을 닮은 기울어진 3×3 격자를 사용합니다. 런처 아이콘은 `cd app && flutter pub run flutter_launcher_icons`로 다시 만듭니다.
+- 안드로이드 아이콘은 캐치콩·머니콩처럼 전체 배경이 포함된 이미지를 사용하며, 캐릭터가 크게 보이도록 inset을 12%로 맞춥니다. 진입 화면은 별도의 투명 캐릭터와 22% inset으로 시스템 원형 마스크 안에 맞춥니다.

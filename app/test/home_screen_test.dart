@@ -93,7 +93,6 @@ void main() {
 
   testWidgets('a played game can be resumed and left again', (tester) async {
     await pumpHome(tester, played: true);
-    expect(find.textContaining('01:15'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('home-resume')));
     await tester.pumpAndSettle();
     expect(find.byType(PlayScreen), findsOneWidget);

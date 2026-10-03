@@ -9,6 +9,7 @@ import '../../settings/settings_provider.dart';
 import '../model/play_intent.dart';
 import '../model/play_state.dart';
 import '../play_controller.dart';
+import 'console_metrics.dart';
 import 'key_rows.dart';
 
 /// Digit keys in the Sudoku Dojo style: plain large digits with the number
@@ -23,6 +24,9 @@ class NumberPad extends ConsumerWidget {
     this.noteMode = false,
     this.selectedWritable = false,
     this.paintColor = -1,
+    required this.layout,
+    this.scale = 1,
+    this.reserveOneRow = true,
   });
 
   /// Current board values, used for the remaining counts.
@@ -46,11 +50,34 @@ class NumberPad extends ConsumerWidget {
   /// is the tool instead. Drawn as the picked swatch in the color strip.
   final int paintColor;
 
+  /// Keypad layout to show (see [ConsoleMetrics]).
+  final NumberPadLayout layout;
+
+  /// Multiplier on every vertical size, from [ConsoleMetrics].
+  final double scale;
+
+  /// Whether a one-row keypad keeps the two-row height below it.
+  final bool reserveOneRow;
+
   static const double keyHeight = 72;
+  static const double boxPad = 8;
+  static const double boxGap = 8;
+
+  /// Height at scale 1: the palette box, the gap and the keypad box.
+  static double naturalHeight(NumberPadLayout layout, {required bool reserve}) {
+    final palette = _PaintStrip.height + boxPad * 2;
+    final keys = switch (layout) {
+      NumberPadLayout.twoRows => keyHeight * 2 + KeyRows.gap,
+      NumberPadLayout.oneRow => keyHeight,
+    };
+    final spare = layout == NumberPadLayout.oneRow && reserve
+        ? keyHeight + KeyRows.gap
+        : 0.0;
+    return palette + boxGap + keys + boxPad * 2 + spare;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final layout = ref.watch(settingsProvider.select((s) => s.numberPadLayout));
     final longPress = ref.watch(settingsProvider.select((s) => s.longPress));
     final inputMode = ref.watch(settingsProvider.select((s) => s.inputMode));
     final holdWrites = inputMode == InputMode.cellFirst && selectedWritable;
@@ -98,6 +125,7 @@ class NumberPad extends ConsumerWidget {
       // moves under the digit there.
       countBelow: layout == NumberPadLayout.oneRow,
       longPress: longPress,
+      scale: scale,
       onTap: () => tap(d),
       onLongPress: () => hold(d),
     );
@@ -120,27 +148,37 @@ class NumberPad extends ConsumerWidget {
               borderRadius: BorderRadius.circular(18),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: _PaintStrip(picked: paintColor),
+              padding: EdgeInsets.symmetric(
+                vertical: boxPad * scale,
+                horizontal: boxPad,
+              ),
+              child: _PaintStrip(picked: paintColor, scale: scale),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: boxGap * scale),
           AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            padding: EdgeInsets.symmetric(
+              vertical: boxPad * scale,
+              horizontal: 4,
+            ),
             decoration: BoxDecoration(
               color: noteMode
                   ? context.boardColors.peer
                   : scheme.surfaceContainer,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: KeyRows(layout: layout, builder: key),
+            child: KeyRows(
+              layout: layout,
+              builder: key,
+              rowGap: KeyRows.gap * scale,
+            ),
           ),
           // A single row keeps its box compact but stays on the line of the
           // two-row layout's upper row, so the board and toolbar never move;
           // the saved height becomes bottom margin.
-          if (layout == NumberPadLayout.oneRow)
-            SizedBox(height: keyHeight + KeyRows.gap),
+          if (layout == NumberPadLayout.oneRow && reserveOneRow)
+            SizedBox(height: (keyHeight + KeyRows.gap) * scale),
         ],
       ),
     );
@@ -156,6 +194,7 @@ class _DigitKey extends StatelessWidget {
     required this.noteStyle,
     required this.countBelow,
     required this.longPress,
+    required this.scale,
     required this.onTap,
     required this.onLongPress,
   });
@@ -169,6 +208,7 @@ class _DigitKey extends StatelessWidget {
   final bool noteStyle;
   final bool countBelow;
   final Duration longPress;
+  final double scale;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -178,6 +218,8 @@ class _DigitKey extends StatelessWidget {
     final done = remaining <= 0;
     final slots = colors.digitSlots;
     final tile = slot < 0 ? null : slots[slot % slots.length].fill;
+    // Digits shrink less than the keys, so they stay legible when squeezed.
+    final text = scale.clamp(0.85, 1.0);
     return Semantics(
       button: true,
       label: '$digit',
@@ -198,7 +240,7 @@ class _DigitKey extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            height: NumberPad.keyHeight,
+            height: NumberPad.keyHeight * scale,
             decoration: BoxDecoration(
               color: tile ?? Colors.transparent,
               borderRadius: BorderRadius.circular(12),
@@ -215,7 +257,7 @@ class _DigitKey extends StatelessWidget {
                     // The lighter mark color on plain keys; on a colored
                     // tile the count takes the strong text color instead.
                     color: tile == null ? colors.note : colors.given,
-                    fontSize: countBelow ? 12 : 13,
+                    fontSize: (countBelow ? 12 : 13) * text,
                     fontWeight: FontWeight.w500,
                     height: 1,
                     fontFeatures: const [FontFeature.tabularFigures()],
@@ -227,7 +269,7 @@ class _DigitKey extends StatelessWidget {
                     '$digit',
                     style: TextStyle(
                       color: noteStyle ? colors.given : colors.entry,
-                      fontSize: countBelow ? 32 : 36,
+                      fontSize: (countBelow ? 32 : 36) * text,
                       fontWeight: FontWeight.w600,
                       height: 1,
                       fontFeatures: const [FontFeature.tabularFigures()],
@@ -251,7 +293,7 @@ class _DigitKey extends StatelessWidget {
                         Transform.translate(
                           // Top-right of the digit; the digit itself stays on
                           // the key's center.
-                          offset: const Offset(17, -14),
+                          offset: Offset(17 * text, -14 * text),
                           child: Text('$remaining', style: countStyle),
                         ),
                     ],
@@ -270,10 +312,12 @@ class _DigitKey extends StatelessWidget {
 /// next board taps paint; a digit key takes over again. The eraser is on
 /// the toolbar.
 class _PaintStrip extends ConsumerWidget {
-  const _PaintStrip({required this.picked});
+  const _PaintStrip({required this.picked, required this.scale});
 
   /// Armed color 1-9, 0 for the eraser, -1 when nothing is armed.
   final int picked;
+
+  final double scale;
 
   static const double height = 40;
   static const double gap = 4;
@@ -300,6 +344,7 @@ class _PaintStrip extends ConsumerWidget {
               fill: slots[c - 1].fill,
               mark: slots[c - 1].chip,
               outline: board.entry,
+              height: _PaintStrip.height * scale,
               onTap: () => pick(c),
             ),
           ),
@@ -316,6 +361,7 @@ class _Swatch extends StatelessWidget {
     required this.picked,
     required this.fill,
     required this.outline,
+    required this.height,
     required this.onTap,
     this.mark,
   });
@@ -324,6 +370,7 @@ class _Swatch extends StatelessWidget {
   final bool picked;
   final Color fill;
   final Color outline;
+  final double height;
   final VoidCallback onTap;
   final Color? mark;
 
@@ -338,7 +385,7 @@ class _Swatch extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          height: _PaintStrip.height,
+          height: height,
           decoration: BoxDecoration(
             color: fill,
             borderRadius: BorderRadius.circular(10),

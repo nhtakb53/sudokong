@@ -87,6 +87,20 @@ void main() {
     );
   }
 
+  testWidgets('on an iPhone-sized screen the board keeps its full width', (
+    tester,
+  ) async {
+    // iPhone 15 at the test ratio: 59 dp above, 34 dp below.
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 2.75;
+    tester.view.padding = const FakeViewPadding(top: 162, bottom: 94);
+    addTearDown(tester.view.reset);
+    await pumpPlay(tester);
+    final width = tester.getSize(find.byType(BoardView)).width;
+    expect(width, closeTo(1080 / 2.75 - 12, 0.5));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the screen fits with status-bar and navigation insets', (
     tester,
   ) async {

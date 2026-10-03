@@ -1,5 +1,48 @@
 import 'package:flutter/material.dart';
 
+/// Home surfaces reuse the active game theme instead of a separate palette.
+@immutable
+class HomeColors {
+  const HomeColors({
+    required this.background,
+    required this.surface,
+    required this.ink,
+    required this.muted,
+    required this.accent,
+    required this.onAccent,
+    required this.line,
+    required this.halo,
+    required this.haloAccent,
+  });
+
+  final Color background;
+  final Color surface;
+  final Color ink;
+  final Color muted;
+  final Color accent;
+  final Color onAccent;
+  final Color line;
+  final Color halo;
+  final Color haloAccent;
+
+  static HomeColors of(BuildContext context) {
+    final theme = Theme.of(context);
+    final board = theme.extension<BoardColors>()!;
+    final scheme = theme.colorScheme;
+    return HomeColors(
+      background: theme.scaffoldBackgroundColor,
+      surface: scheme.surfaceContainer,
+      ink: board.given,
+      muted: scheme.onSurfaceVariant,
+      accent: board.noteHighlightFill,
+      onAccent: board.noteHighlightText,
+      line: scheme.outlineVariant,
+      halo: board.peer,
+      haloAccent: board.sameDigit,
+    );
+  }
+}
+
 /// One color set for a highlighted digit: the fill behind a placed digit
 /// and the chip (with its text color) behind a matching pencil mark.
 @immutable

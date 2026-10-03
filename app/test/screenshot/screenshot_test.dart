@@ -72,6 +72,18 @@ class _FixedPlayController extends _QuietPlayController {
   Future<PlayState> build() async => _sampleState();
 }
 
+class _FreshPlayController extends _QuietPlayController {
+  @override
+  Future<PlayState> build() async => PlayState.fromPuzzle(
+    const GeneratedPuzzle(
+      puzzle: _puzzle,
+      solution: _solution,
+      givens: 30,
+      seed: 1,
+    ),
+  );
+}
+
 class _NoteModePlayController extends _QuietPlayController {
   @override
   Future<PlayState> build() async =>
@@ -226,9 +238,14 @@ Future<void> _pumpApp(
   bool noteMode = false,
   bool paused = false,
   bool almostDone = false,
+  bool fresh = false,
+  Size physicalSize = const Size(1080, 2340),
+  FakeViewPadding padding = FakeViewPadding.zero,
+  double textScale = 1,
 }) async {
-  tester.view.physicalSize = const Size(1080, 2340);
+  tester.view.physicalSize = physicalSize;
   tester.view.devicePixelRatio = 2.75;
+  tester.view.padding = padding;
   addTearDown(tester.view.reset);
 
   final prefs = await SharedPreferencesWithCache.create(
@@ -245,7 +262,9 @@ Future<void> _pumpApp(
           paused ? _PausedTimer.new : _StillTimer.new,
         ),
         playControllerProvider.overrideWith(
-          almostDone
+          fresh
+              ? _FreshPlayController.new
+              : almostDone
               ? _AlmostDonePlayController.new
               : noteMode
               ? _NoteModePlayController.new
@@ -268,6 +287,11 @@ Future<void> _pumpApp(
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           theme: AppTheme.build(ColorTheme.classic, brightness),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
           home: home,
         ),
       ),
@@ -303,6 +327,21 @@ void main() {
     testWidgets('play screen (${brightness.name})', (tester) async {
       await _pumpApp(tester, brightness: brightness, home: const PlayScreen());
       await tester.runAsync(() => _capture(tester, 'play_${brightness.name}'));
+    }, skip: !_enabled);
+
+    testWidgets('play screen on an iPhone (${brightness.name})', (
+      tester,
+    ) async {
+      // iPhone 15 safe areas at the test ratio: 59 dp above, 34 dp below.
+      await _pumpApp(
+        tester,
+        brightness: brightness,
+        home: const PlayScreen(),
+        padding: const FakeViewPadding(top: 162, bottom: 94),
+      );
+      await tester.runAsync(
+        () => _capture(tester, 'play_iphone_${brightness.name}'),
+      );
     }, skip: !_enabled);
 
     testWidgets('play screen with all candidates (${brightness.name})', (
@@ -429,6 +468,43 @@ void main() {
       await tester.pump();
       await tester.runAsync(() => _capture(tester, 'home_${brightness.name}'));
     }, skip: !_enabled);
+
+    for (final variant in [
+      (name: 'fresh', size: const Size(1080, 2340), scale: 1.0, fresh: true),
+      (name: 'compact', size: const Size(880, 1568), scale: 1.0, fresh: false),
+      (
+        name: 'large_text',
+        size: const Size(1080, 2340),
+        scale: 2.0,
+        fresh: false,
+      ),
+      (
+        name: 'landscape',
+        size: const Size(2340, 1080),
+        scale: 1.0,
+        fresh: false,
+      ),
+    ]) {
+      testWidgets('home screen ${variant.name} (${brightness.name})', (
+        tester,
+      ) async {
+        await _pumpApp(
+          tester,
+          brightness: brightness,
+          home: const HomeScreen(),
+          fresh: variant.fresh,
+          physicalSize: variant.size,
+          textScale: variant.scale,
+        );
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 200)),
+        );
+        await tester.pump();
+        await tester.runAsync(
+          () => _capture(tester, 'home_${variant.name}_${brightness.name}'),
+        );
+      }, skip: !_enabled);
+    }
 
     testWidgets('glossary screen (${brightness.name})', (tester) async {
       await _pumpApp(

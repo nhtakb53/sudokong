@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Insets are relative to the system's icon bounds, so scaling the drawable
+     cannot enlarge the character into Android's circular splash mask. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/launch_mascot"
+    android:inset="22%" />

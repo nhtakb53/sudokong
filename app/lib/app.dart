@@ -65,6 +65,23 @@ class _SudokongAppState extends ConsumerState<SudokongApp> {
       theme: AppTheme.light(settings.colorTheme),
       darkTheme: AppTheme.dark(settings.colorTheme),
       themeMode: settings.themeMode,
+      // The status bar's text follows the app's own brightness, not the
+      // system's: iOS otherwise draws dark text over the dark theme.
+      builder: (context, child) {
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+            statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness: dark
+                ? Brightness.light
+                : Brightness.dark,
+          ),
+          child: child!,
+        );
+      },
       home: const HomeScreen(),
     );
   }

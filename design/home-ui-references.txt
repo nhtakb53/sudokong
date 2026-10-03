@@ -1,0 +1,27 @@
+Sudokong home UI reference review — 2026-10-02
+
+Official references reviewed
+
+Google, Material 3 Expressive announcement (2025-05-13)
+https://blog.google/products-and-platforms/platforms/android/material-3-expressive-android-wearos-launch/
+Emphasized typography, responsive components, coherent color themes and short, natural motion make important information easier to see.
+
+Apple Games introduction (2025-06-10)
+https://www.apple.com/newsroom/2025/06/introducing-the-apple-games-app-a-personalized-home-for-games/
+Returning to an existing game is a central entry flow. The official Home image combines game artwork with a clear play action and adapts to landscape.
+
+Easybrain, current Sudoku.com product page (reviewed 2026-10-02)
+https://easybrain.com/sudoku
+Classic 9-by-9 gameplay and theme customization support a calm, legible puzzle experience.
+
+NYT Games, current publisher App Store listing (reviewed 2026-10-02)
+https://apps.apple.com/us/app/nyt-games-wordle-crossword/id307569751
+Used to review current puzzle-app positioning and game entry information.
+
+Application to Sudokong
+- Group the real saved-game count, elapsed time, progress bar and play actions in one rounded card.
+- Promote Continue when a game has progress; otherwise promote New Game. Keep the existing disabled Continue state and new-game confirmation.
+- Move the app name and utility actions to a compact header. Use the mascot and a subtle board motif as the visual identity.
+- Derive all home UI colors from the active game theme. Recolor the mascot and launcher assets to classic blue/slate, retaining natural ivory fur.
+- Use a two-column composition on wide screens, smaller artwork on short screens, scrolling for large text, and a brief entrance respecting reduced-motion settings.
+- Game rules, persistence, puzzle generation and available routes are unchanged.

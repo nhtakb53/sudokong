@@ -7,12 +7,20 @@ import '../../settings/app_settings.dart';
 /// keyboard. Shared by the digit keypad and the paint palette so both
 /// have the same size and rhythm.
 class KeyRows extends StatelessWidget {
-  const KeyRows({super.key, required this.layout, required this.builder});
+  const KeyRows({
+    super.key,
+    required this.layout,
+    required this.builder,
+    this.rowGap = gap,
+  });
 
   final NumberPadLayout layout;
 
   /// Builds the key for position 1..9.
   final Widget Function(int index) builder;
+
+  /// Space between the two rows; scaled down with the keys when squeezed.
+  final double rowGap;
 
   static const double gap = 4;
 
@@ -46,7 +54,7 @@ class KeyRows extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: gap),
+              SizedBox(height: rowGap),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: offset),
                 child: Row(

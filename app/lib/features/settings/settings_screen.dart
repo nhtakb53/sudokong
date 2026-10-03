@@ -35,6 +35,7 @@ class SettingsScreen extends ConsumerWidget {
                     SettingsRow(
                       title: '전체화면',
                       trailing: Switch(
+                        key: const ValueKey('switch-fullscreen'),
                         value: settings.fullscreen,
                         onChanged: notifier.setFullscreen,
                       ),
@@ -140,6 +141,7 @@ class SettingsScreen extends ConsumerWidget {
                     SettingsRow(
                       title: '같은 숫자 자동 강조',
                       trailing: Switch(
+                        key: const ValueKey('switch-auto-highlight'),
                         value: settings.autoHighlight,
                         onChanged: notifier.setAutoHighlight,
                       ),
@@ -147,6 +149,7 @@ class SettingsScreen extends ConsumerWidget {
                     SettingsRow(
                       title: '타이머 표시',
                       trailing: Switch(
+                        key: const ValueKey('switch-show-timer'),
                         value: settings.showTimer,
                         onChanged: notifier.setShowTimer,
                       ),

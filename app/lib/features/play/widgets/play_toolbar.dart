@@ -8,6 +8,7 @@ import '../../settings/settings_provider.dart';
 import '../model/play_intent.dart';
 import '../model/play_state.dart';
 import '../play_controller.dart';
+import 'console_metrics.dart';
 import 'tool_icons.dart';
 
 /// Two rows of icon buttons between the board and the keypad. The upper
@@ -16,9 +17,17 @@ import 'tool_icons.dart';
 /// link tool, the conjugate-pair view, the two candidate-count filters and
 /// the wipe menu. Holding a button shows its name.
 class PlayToolbar extends ConsumerWidget {
-  const PlayToolbar({super.key, required this.state});
+  const PlayToolbar({super.key, required this.state, this.scale = 1});
 
   final PlayState state;
+
+  /// Multiplier on the rows' height, from [ConsoleMetrics].
+  final double scale;
+
+  static const double rowHeight = 48;
+
+  /// Height at scale 1: two rows, their gap and the box padding.
+  static const double naturalHeight = rowHeight * 2 + 2 + 8;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -46,38 +55,47 @@ class PlayToolbar extends ConsumerWidget {
         borderRadius: BorderRadius.circular(18),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4 * scale),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
                 _ToolButton(
+                  scale: scale,
                   icon: Icons.undo_rounded,
                   name: '실행취소',
                   enabled: state.canUndo,
                   onTap: () => tap(const Undo(), select: false),
                 ),
                 _ToolButton(
+                  scale: scale,
                   icon: Icons.redo_rounded,
                   name: '다시실행',
                   enabled: state.canRedo,
                   onTap: () => tap(const Redo(), select: false),
                 ),
                 _ToolButton(
-                  glyph: (color) => EraserIcon(color: color, filled: erasing),
+                  scale: scale,
+                  glyph: (color, size) =>
+                      EraserIcon(color: color, filled: erasing, size: size),
                   name: '지우개',
                   active: erasing,
                   onTap: () => tap(const EraseTool()),
                 ),
                 _ToolButton(
-                  glyph: (color) =>
-                      PencilIcon(color: color, filled: state.noteMode),
+                  scale: scale,
+                  glyph: (color, size) => PencilIcon(
+                    color: color,
+                    filled: state.noteMode,
+                    size: size,
+                  ),
                   name: '메모',
                   active: state.noteMode,
                   onTap: () => tap(const ToggleNoteMode()),
                 ),
                 _ToolButton(
+                  scale: scale,
                   icon: Icons.edit_note_rounded,
                   name: '후보 채움',
                   onTap: () => tap(const FillCandidates(), select: false),
@@ -85,6 +103,7 @@ class PlayToolbar extends ConsumerWidget {
                 // A what-if: digits placed from now on are purple until the
                 // player keeps them or goes back to this point.
                 _ToolButton(
+                  scale: scale,
                   icon: Icons.alt_route_rounded,
                   name: '가정',
                   active: state.hypothesis != null,
@@ -99,12 +118,13 @@ class PlayToolbar extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: 2 * scale),
             Row(
               children: [
                 // Where an armed palette color lands: the cell, or the
                 // nearest pencil mark.
                 _ToolButton(
+                  scale: scale,
                   icon: state.paintTarget == PaintTarget.note
                       ? Icons.apps_rounded
                       : Icons.apps_outlined,
@@ -119,6 +139,7 @@ class PlayToolbar extends ConsumerWidget {
                   ),
                 ),
                 _ToolButton(
+                  scale: scale,
                   icon: state.linkArmed
                       ? Icons.polyline_rounded
                       : Icons.polyline_outlined,
@@ -129,6 +150,7 @@ class PlayToolbar extends ConsumerWidget {
                 // Shows every conjugate pair of the highlighted digits. A
                 // setting, so it survives restarts; toggled from here.
                 _ToolButton(
+                  scale: scale,
                   icon: Icons.linear_scale_rounded,
                   name: '켤레쌍',
                   active: conjugates,
@@ -142,6 +164,7 @@ class PlayToolbar extends ConsumerWidget {
                 // The active tile takes the board's tile color, so the
                 // button and the cells it marks share one look.
                 _ToolButton(
+                  scale: scale,
                   icon: state.highlightsNoteCount(2)
                       ? Icons.looks_two_rounded
                       : Icons.looks_two_outlined,
@@ -152,6 +175,7 @@ class PlayToolbar extends ConsumerWidget {
                   onTap: () => tap(const ToggleNoteCountFilter(2)),
                 ),
                 _ToolButton(
+                  scale: scale,
                   icon: state.highlightsNoteCount(3)
                       ? Icons.looks_3_rounded
                       : Icons.looks_3_outlined,
@@ -162,6 +186,7 @@ class PlayToolbar extends ConsumerWidget {
                   onTap: () => tap(const ToggleNoteCountFilter(3)),
                 ),
                 _ToolButton(
+                  scale: scale,
                   icon: Icons.layers_clear_outlined,
                   name: '지우기 메뉴',
                   enabled: wipeable,
@@ -259,8 +284,8 @@ class PlayToolbar extends ConsumerWidget {
   }
 }
 
-/// Draws a tool's glyph in the given color.
-typedef ToolGlyph = Widget Function(Color color);
+/// Draws a tool's glyph in the given color at the given size.
+typedef ToolGlyph = Widget Function(Color color, double size);
 
 /// One icon tile. Its name shows on a long press (and to screen readers).
 /// The picture is a font [icon] or a hand-drawn [glyph].
@@ -270,6 +295,7 @@ class _ToolButton extends StatefulWidget {
     this.glyph,
     required this.name,
     required this.onTap,
+    this.scale = 1,
     this.active = false,
     this.enabled = true,
     this.activeTile,
@@ -280,6 +306,7 @@ class _ToolButton extends StatefulWidget {
   final ToolGlyph? glyph;
   final String name;
   final VoidCallback onTap;
+  final double scale;
   final bool active;
   final bool enabled;
 
@@ -298,6 +325,8 @@ class _ToolButtonState extends State<_ToolButton> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final active = widget.active;
+    // Icons shrink less than the tiles, so they stay crisp when squeezed.
+    final iconSize = 24 * widget.scale.clamp(0.85, 1.0);
     final iconColor = active
         ? (widget.activeIcon ?? scheme.onPrimary)
         : scheme.onSurface;
@@ -326,20 +355,20 @@ class _ToolButtonState extends State<_ToolButton> {
             child: Opacity(
               opacity: widget.enabled ? 1 : 0.35,
               child: SizedBox(
-                height: 48,
+                height: PlayToolbar.rowHeight * widget.scale,
                 child: Center(
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 120),
                     width: 44,
-                    height: 40,
+                    height: 40 * widget.scale,
                     decoration: BoxDecoration(
                       color: tileColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
                       child:
-                          widget.glyph?.call(iconColor) ??
-                          Icon(widget.icon, size: 24, color: iconColor),
+                          widget.glyph?.call(iconColor, iconSize) ??
+                          Icon(widget.icon, size: iconSize, color: iconColor),
                     ),
                   ),
                 ),
